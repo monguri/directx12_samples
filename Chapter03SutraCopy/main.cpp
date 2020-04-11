@@ -135,6 +135,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	result = _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&_cmdQueue));
 
+	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
+	swapchainDesc.Width = window_width;
+	swapchainDesc.Height = window_height;
+	swapchainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapchainDesc.Stereo = false;
+	swapchainDesc.SampleDesc.Count = 1;
+	swapchainDesc.SampleDesc.Quality = 0;
+	swapchainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER;
+	swapchainDesc.BufferCount = 2;
+	swapchainDesc.Scaling = DXGI_SCALING_STRETCH;
+	swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapchainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	swapchainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+	result = _dxgiFactory->CreateSwapChainForHwnd(
+		_cmdQueue,
+		hwnd,
+		&swapchainDesc,
+		nullptr,
+		nullptr,
+		(IDXGISwapChain1**)&_swapchain
+	);
+
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	heapDesc.NodeMask = 0;
+	heapDesc.NumDescriptors = 2;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+	ID3D12DescriptorHeap* rtvHeaps = nullptr;
+	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeaps));
+
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+
+	for (int i = 0; i < swapchainDesc.BufferCount; ++i)
+	{
+		ID3D12Resource* buffer = nullptr;
+		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&buffer));
+		_dev->CreateRenderTargetView(buffer, nullptr, handle);
+		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	}
+
 
 	ShowWindow(hwnd, SW_SHOW);
 
