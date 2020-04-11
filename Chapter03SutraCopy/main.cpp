@@ -171,9 +171,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	for (int i = 0; i < swapchainDesc.BufferCount; ++i)
 	{
-		ID3D12Resource* buffer = nullptr;
-		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&buffer));
-		_dev->CreateRenderTargetView(buffer, nullptr, handle);
+		ID3D12Resource* backBuffer = nullptr;
+		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+		_dev->CreateRenderTargetView(backBuffer, nullptr, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 
@@ -194,6 +194,31 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			break;
 		}
+
+		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
+
+		// レンダーターゲットを指定する
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+		rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		_cmdList->OMSetRenderTargets(1, &rtvH, false, nullptr);
+
+		// レンダーターゲットをクリアする
+		float clearColor[] = {1.0f, 1.0f, 0.0f, 1.0f}; // 黄色
+		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
+
+		// コマンドリストのクローズ
+		_cmdList->Close();
+
+		// コマンドリストの実行
+		ID3D12CommandList* cmdlists[] = { _cmdList };
+		_cmdQueue->ExecuteCommandLists(1, cmdlists);
+
+		// コマンドリストのクリア
+		_cmdAllocator->Reset();
+		_cmdList->Reset(_cmdAllocator, nullptr);
+
+		// スワップ
+		_swapchain->Present(1, 0);
 	}
 
 	UnregisterClass(w.lpszClassName, w.hInstance);
