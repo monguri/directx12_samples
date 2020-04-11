@@ -41,6 +41,15 @@ ID3D12GraphicsCommandList* _cmdList = nullptr;
 ID3D12CommandQueue* _cmdQueue = nullptr;
 IDXGISwapChain4* _swapchain = nullptr;
 
+void EnableDebugLayer()
+{
+	ID3D12Debug* debugLayer = nullptr;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugLayer))))
+	{
+		debugLayer->EnableDebugLayer();
+		debugLayer->Release();
+	}
+}
 #ifdef _DEBUG
 int main()
 #else
@@ -74,6 +83,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		w.hInstance,
 		nullptr
 	);
+
+#ifdef _DEBUG
+	EnableDebugLayer();
+#endif // _DEBUG
 
 	// DXGIFactoryの生成
 	if (FAILED(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&_dxgiFactory))))
@@ -135,6 +148,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	result = _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&_cmdQueue));
 
+	// スワップチェインの生成
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = window_width;
 	swapchainDesc.Height = window_height;
@@ -158,6 +172,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		(IDXGISwapChain1**)&_swapchain
 	);
 
+	// ディスクリプタヒープの生成と、2枚のバックバッファ用のレンダーターゲットビューの生成
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	heapDesc.NodeMask = 0;
@@ -169,13 +184,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 
-	for (int i = 0; i < swapchainDesc.BufferCount; ++i)
+	std::vector<ID3D12Resource*> _backBuffers(swapchainDesc.BufferCount);
+	for (UINT i = 0; i < swapchainDesc.BufferCount; ++i)
 	{
-		ID3D12Resource* backBuffer = nullptr;
-		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-		_dev->CreateRenderTargetView(backBuffer, nullptr, handle);
+		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&_backBuffers[i]));
+		_dev->CreateRenderTargetView(_backBuffers[i], nullptr, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
+
+	// フェンスの生成
+	ID3D12Fence* _fence = nullptr;
+	UINT _fenceVal = 0;
+	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence));
 
 
 	ShowWindow(hwnd, SW_SHOW);
@@ -197,6 +217,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
+		// Present状態からレンダーターゲット状態にする
+		D3D12_RESOURCE_BARRIER BarrierDesc = {};
+		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		BarrierDesc.Transition.pResource = _backBuffers[bbIdx];
+		BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		_cmdList->ResourceBarrier(1, &BarrierDesc);
+
 		// レンダーターゲットを指定する
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 		rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -206,12 +236,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		float clearColor[] = {1.0f, 1.0f, 0.0f, 1.0f}; // 黄色
 		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
+		// レンダーターゲと状態からPresent状態にする
+		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		_cmdList->ResourceBarrier(1, &BarrierDesc);
+
 		// コマンドリストのクローズ
 		_cmdList->Close();
 
 		// コマンドリストの実行
 		ID3D12CommandList* cmdlists[] = { _cmdList };
 		_cmdQueue->ExecuteCommandLists(1, cmdlists);
+		_cmdQueue->Signal(_fence, ++_fenceVal);
+
+		if (_fence->GetCompletedValue() != _fenceVal)
+		{
+			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+			_fence->SetEventOnCompletion(_fenceVal, event);
+			WaitForSingleObject(event, INFINITE);
+			CloseHandle(event);
+		}
 
 		// コマンドリストのクリア
 		_cmdAllocator->Reset();
