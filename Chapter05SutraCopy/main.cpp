@@ -347,16 +347,25 @@ int main()
 	}
 
 	// 頂点レイアウトの設定
-	D3D12_INPUT_ELEMENT_DESC inputLayout;
-	inputLayout.SemanticName = "POSITION";
-	inputLayout.SemanticIndex = 0;
-	inputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	inputLayout.InputSlot = 0;
-	inputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	inputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	inputLayout.InstanceDataStepRate = 0;
+	D3D12_INPUT_ELEMENT_DESC posInputLayout;
+	posInputLayout.SemanticName = "POSITION";
+	posInputLayout.SemanticIndex = 0;
+	posInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	posInputLayout.InputSlot = 0;
+	posInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	posInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	posInputLayout.InstanceDataStepRate = 0;
 
-	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {inputLayout};
+	D3D12_INPUT_ELEMENT_DESC uvInputLayout;
+	uvInputLayout.SemanticName = "TEXCOORD";
+	uvInputLayout.SemanticIndex = 0;
+	uvInputLayout.Format = DXGI_FORMAT_R32G32_FLOAT;
+	uvInputLayout.InputSlot = 0;
+	uvInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	uvInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	uvInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {posInputLayout, uvInputLayout};
 
 	// グラフィックスパイプラインステートとルートシグネチャの作成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};

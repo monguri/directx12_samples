@@ -1,4 +1,9 @@
-float4 BasicVS(float4 pos : POSITION) : SV_POSITION
+#include "BasicShaderHeader.hlsli"
+
+Output BasicVS(float4 pos : POSITION, float2 uv : TEXCOORD)
 {
-	return pos;
+	Output output;
+	output.pos = pos;
+	output.uv = uv;
+	return output;
 }

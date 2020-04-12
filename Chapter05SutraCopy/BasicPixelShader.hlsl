@@ -1,4 +1,6 @@
-float4 BasicPS(float4 pos : SV_Position) : SV_Target
+#include "BasicShaderHeader.hlsli"
+
+float4 BasicPS(Output input) : SV_Target
 {
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+	return float4(input.uv, 1.0f, 1.0f);
 }
