@@ -2,6 +2,7 @@
 #include <tchar.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <DirectXMath.h>
 #include <vector>
 #ifdef _DEBUG
 #include <iostream>
@@ -9,6 +10,8 @@
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+
+using namespace DirectX;
 
 void DebugOutputFormatString(const char* format, ...)
 {
@@ -199,6 +202,51 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 	ShowWindow(hwnd, SW_SHOW);
+
+	// 頂点バッファの作成
+	XMFLOAT3 vertices[] = {
+		{-1.0f, -1.0f, 0.0f}, // 左下
+		{-1.0f, 1.0f, 0.0f}, // 左上
+		{1.0f, -1.0f, 0.0f}, // 右下
+	};
+
+	D3D12_HEAP_PROPERTIES heapprop = {};
+	heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	D3D12_RESOURCE_DESC resdesc = {};
+	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resdesc.Width = sizeof(vertices);
+	resdesc.Height = 1;
+	resdesc.DepthOrArraySize = 1;
+	resdesc.MipLevels = 1;
+	resdesc.Format = DXGI_FORMAT_UNKNOWN;
+	resdesc.SampleDesc.Count = 1;
+	resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	ID3D12Resource* vertBuff = nullptr;
+	result = _dev->CreateCommittedResource(
+		&heapprop,
+		D3D12_HEAP_FLAG_NONE,
+		&resdesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&vertBuff)
+	);
+
+	// 頂点バッファへのデータ書き込み
+	XMFLOAT3* vertMap = nullptr;
+	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
+	std::copy(std::begin(vertices), std::end(vertices), vertMap);
+	vertBuff->Unmap(0, nullptr);
+
+	// 頂点バッファービューの用意
+	D3D12_VERTEX_BUFFER_VIEW vbView = {};
+	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress();
+	vbView.SizeInBytes = sizeof(vertices);
+	vbView.StrideInBytes = sizeof(vertices[0]);
 
 	MSG msg = {};
 
