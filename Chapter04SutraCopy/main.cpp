@@ -208,9 +208,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// 頂点バッファの作成
 	XMFLOAT3 vertices[] = {
-		{-1.0f, -1.0f, 0.0f}, // 左下
-		{-1.0f, 1.0f, 0.0f}, // 左上
-		{1.0f, -1.0f, 0.0f}, // 右下
+		{-0.4f, -0.7f, 0.0f}, // 左下
+		{-0.4f, 0.7f, 0.0f}, // 左上
+		{0.4f, -0.7f, 0.0f}, // 右下
+		{0.4f, 0.7f, 0.0f}, // 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -317,7 +318,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	D3D12_INPUT_ELEMENT_DESC inputLayout;
 	inputLayout.SemanticName = "POSITION";
 	inputLayout.SemanticIndex = 0;
-	inputLayout.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	inputLayout.InputSlot = 0;
 	inputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	inputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
@@ -376,6 +377,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ID3D12PipelineState* _pipelinestate = nullptr;
 	result = _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(&_pipelinestate));
 
+	D3D12_VIEWPORT viewport = {};
+	viewport.Width = window_width;
+	viewport.Height = window_height;
+	viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	viewport.MinDepth = 0.0f;
+
+	D3D12_RECT scissorrect = {};
+	scissorrect.top = 0;
+	scissorrect.left = 0;
+	scissorrect.right = scissorrect.left + window_width;
+	scissorrect.bottom = scissorrect.top + window_height;
+
 	MSG msg = {};
 
 	while (true)
@@ -403,6 +418,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		_cmdList->ResourceBarrier(1, &BarrierDesc);
 
+		_cmdList->SetPipelineState(_pipelinestate);
+
 		// レンダーターゲットを指定する
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 		rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -412,7 +429,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		float clearColor[] = {1.0f, 1.0f, 0.0f, 1.0f}; // 黄色
 		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
-		// レンダーターゲと状態からPresent状態にする
+		// 三角形を描画する
+		_cmdList->RSSetViewports(1, &viewport);
+		_cmdList->RSSetScissorRects(1, &scissorrect);
+		_cmdList->SetGraphicsRootSignature(rootsignature);
+		//_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		_cmdList->IASetVertexBuffers(0, 1, &vbView);
+		_cmdList->DrawInstanced(4, 1, 0, 0);
+
+		// レンダーターゲット状態からPresent状態にする
 		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		_cmdList->ResourceBarrier(1, &BarrierDesc);
