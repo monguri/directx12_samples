@@ -203,12 +203,18 @@ int main()
 
 	ShowWindow(hwnd, SW_SHOW);
 
+	struct Vertex
+	{
+		XMFLOAT3 pos;
+		XMFLOAT2 uv;
+	};
+
 	// 頂点バッファの作成
-	XMFLOAT3 vertices[] = {
-		{-0.4f, -0.7f, 0.0f}, // 左下
-		{-0.4f, 0.7f, 0.0f}, // 左上
-		{0.4f, -0.7f, 0.0f}, // 右下
-		{0.4f, 0.7f, 0.0f}, // 右上
+	Vertex vertices[] = {
+		{{-0.5f, -0.9f, 0.0f}, {0.0, 1.0}}, // 左下
+		{{-0.5f, 0.9f, 0.0f}, {0.0, 0.0}}, // 左上
+		{{0.5f, -0.9f, 0.0f}, {1.0, 1.0}}, // 右下
+		{{0.5f, 0.9f, 0.0f}, {1.0, 0.0}}, // 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -238,7 +244,7 @@ int main()
 	);
 
 	// 頂点バッファへのデータ書き込み
-	XMFLOAT3* vertMap = nullptr;
+	Vertex* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
 	std::copy(std::begin(vertices), std::end(vertices), vertMap);
 	vertBuff->Unmap(0, nullptr);
