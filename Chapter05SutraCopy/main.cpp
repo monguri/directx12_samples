@@ -447,7 +447,7 @@ int main()
 		rbga.A = 255;
 	}
 
-	// テクスチャのヒープ設定
+	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = {};
 	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
 	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
@@ -475,6 +475,15 @@ int main()
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
+	);
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		texturedata.data(),
+		sizeof(TexRGBA) * 256,
+		sizeof(TexRGBA) * texturedata.size()
 	);
 
 	MSG msg = {};
