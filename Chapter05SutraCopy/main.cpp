@@ -510,10 +510,11 @@ int main()
 		0,
 		nullptr,
 		texturedata.data(),
-		sizeof(TexRGBA) * 256,
-		sizeof(TexRGBA) * texturedata.size()
+		(UINT)(sizeof(TexRGBA) * 256),
+		(UINT)(sizeof(TexRGBA) * texturedata.size())
 	);
 
+	// ディスクリプタヒープとSRV作成
 	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
 	texHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	texHeapDesc.NodeMask = 0;
@@ -577,10 +578,15 @@ int main()
 		// 三角形を描画する
 		_cmdList->RSSetViewports(1, &viewport);
 		_cmdList->RSSetScissorRects(1, &scissorrect);
-		_cmdList->SetGraphicsRootSignature(rootsignature);
+
 		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
 		_cmdList->IASetIndexBuffer(&ibView);
+
+		_cmdList->SetGraphicsRootSignature(rootsignature);
+		_cmdList->SetDescriptorHeaps(1, &texDescHeap);
+		_cmdList->SetGraphicsRootDescriptorTable(0, texDescHeap->GetGPUDescriptorHandleForHeapStart());
+
 		_cmdList->DrawInstanced(4, 1, 0, 0);
 		_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
