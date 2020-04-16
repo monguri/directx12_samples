@@ -50,6 +50,11 @@ ID3D12GraphicsCommandList* _cmdList = nullptr;
 ID3D12CommandQueue* _cmdQueue = nullptr;
 IDXGISwapChain4* _swapchain = nullptr;
 
+size_t AlignmentedSize(size_t size, size_t alignment)
+{
+	return size + alignment - size % alignment;
+}
+
 void EnableDebugLayer()
 {
 	ID3D12Debug* debugLayer = nullptr;
@@ -485,7 +490,7 @@ int main()
 	D3D12_RESOURCE_DESC uploadResDesc = {};
 	uploadResDesc.Format = DXGI_FORMAT_UNKNOWN;
 	uploadResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;;
-	uploadResDesc.Width = img->slicePitch;
+	uploadResDesc.Width = (UINT)AlignmentedSize(img->rowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * img->height;
 	uploadResDesc.Height = 1;
 	uploadResDesc.DepthOrArraySize = 1;
 	uploadResDesc.MipLevels = 1;
@@ -537,7 +542,16 @@ int main()
 	// 中間バッファからテクスチャバッファへテクスチャデータを書き込み
 	uint8_t* mapforImg = nullptr;
 	result = uploadbuff->Map(0, nullptr, (void**)&mapforImg);
-	std::copy_n(img->pixels, img->slicePitch, mapforImg);
+	uint8_t* srcAddress = img->pixels;
+	size_t rowPitch = AlignmentedSize(img->rowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	for (int y = 0; y < img->height; ++y)
+	{
+		// 行ごとにコピーして、アラインメントされてないテクスチャとアラインメントしたメモリとした
+		// 中間バッファの行頭を合わせる
+		std::copy_n(srcAddress, rowPitch, mapforImg);
+		srcAddress += img->rowPitch;
+		mapforImg += rowPitch;
+	}
 	uploadbuff->Unmap(0, nullptr);
 
 	D3D12_TEXTURE_COPY_LOCATION src = {};
@@ -547,7 +561,7 @@ int main()
 	src.PlacedFootprint.Footprint.Width = (UINT)metadata.width;
 	src.PlacedFootprint.Footprint.Height = (UINT)metadata.height;
 	src.PlacedFootprint.Footprint.Depth = (UINT)metadata.depth;
-	src.PlacedFootprint.Footprint.RowPitch = (UINT)img->rowPitch;
+	src.PlacedFootprint.Footprint.RowPitch = (UINT)rowPitch;
 	src.PlacedFootprint.Footprint.Format = img->format;
 
 	D3D12_TEXTURE_COPY_LOCATION dst = {};
