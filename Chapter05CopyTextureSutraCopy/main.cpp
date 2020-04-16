@@ -474,11 +474,41 @@ int main()
 	result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
 	const Image* img = scratchImg.GetImage(0, 0, 0);
 
+	// アップロード用中間バッファ作成
+	D3D12_HEAP_PROPERTIES uploadHeapProp = {};
+	uploadHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+	uploadHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	uploadHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	uploadHeapProp.CreationNodeMask = 0;
+	uploadHeapProp.VisibleNodeMask = 0;
+
+	D3D12_RESOURCE_DESC uploadResDesc = {};
+	uploadResDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uploadResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;;
+	uploadResDesc.Width = img->slicePitch;
+	uploadResDesc.Height = 1;
+	uploadResDesc.DepthOrArraySize = 1;
+	uploadResDesc.MipLevels = 1;
+	uploadResDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	uploadResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	uploadResDesc.SampleDesc.Count = 1;
+	uploadResDesc.SampleDesc.Quality = 0;
+
+	ID3D12Resource* uploadbuff = nullptr;
+	result = _dev->CreateCommittedResource(
+		&uploadHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&uploadResDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&uploadbuff)
+	);
+
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	texHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 	texHeapProp.CreationNodeMask = 0;
 	texHeapProp.VisibleNodeMask = 0;
 
@@ -499,19 +529,65 @@ int main()
 		&texHeapProp ,
 		D3D12_HEAP_FLAG_NONE,
 		&texResDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
 	);
 
-	// テクスチャバッファへ作成したテクスチャデータを書き込み
-	result = texbuff->WriteToSubresource(
-		0,
-		nullptr,
-		img->pixels,
-		(UINT)img->rowPitch,
-		(UINT)img->slicePitch
-	);
+	// 中間バッファからテクスチャバッファへテクスチャデータを書き込み
+	uint8_t* mapforImg = nullptr;
+	result = uploadbuff->Map(0, nullptr, (void**)&mapforImg);
+	std::copy_n(img->pixels, img->slicePitch, mapforImg);
+	uploadbuff->Unmap(0, nullptr);
+
+	D3D12_TEXTURE_COPY_LOCATION src = {};
+	src.pResource = uploadbuff;
+	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	src.PlacedFootprint.Offset = 0;
+	src.PlacedFootprint.Footprint.Width = (UINT)metadata.width;
+	src.PlacedFootprint.Footprint.Height = (UINT)metadata.height;
+	src.PlacedFootprint.Footprint.Depth = (UINT)metadata.depth;
+	src.PlacedFootprint.Footprint.RowPitch = (UINT)img->rowPitch;
+	src.PlacedFootprint.Footprint.Format = img->format;
+
+	D3D12_TEXTURE_COPY_LOCATION dst = {};
+	dst.pResource = texbuff;
+	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	dst.SubresourceIndex = 0;
+
+
+	{
+		_cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+		// D3D12_RESOURCE_STATE_COPY_DESTからD3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCEにタイプを変えるバリア
+		D3D12_RESOURCE_BARRIER BarrierDesc = {};
+		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		BarrierDesc.Transition.pResource = texbuff;
+		BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		_cmdList->ResourceBarrier(1, &BarrierDesc);
+		_cmdList->Close();
+
+		// コマンドリストの実行
+		ID3D12CommandList* cmdlists[] = { _cmdList };
+		_cmdQueue->ExecuteCommandLists(1, cmdlists);
+		_cmdQueue->Signal(_fence, ++_fenceVal);
+
+		if (_fence->GetCompletedValue() != _fenceVal)
+		{
+			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+			_fence->SetEventOnCompletion(_fenceVal, event);
+			WaitForSingleObject(event, INFINITE);
+			CloseHandle(event);
+		}
+
+		// コマンドリストのクリア
+		_cmdAllocator->Reset();
+		_cmdList->Reset(_cmdAllocator, nullptr);
+	}
+
 
 	// ディスクリプタヒープとSRV作成
 	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
