@@ -49,6 +49,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter05SutraCopy", "Chapt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter05CopyTextureSutraCopy", "Chapter05CopyTextureSutraCopy\Chapter05CopyTextureSutraCopy.vcxproj", "{23C7AC3F-72D6-413D-83A0-4D2CA28573EA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter06SutraCopy", "Chapter06SutraCopy\Chapter06SutraCopy.vcxproj", "{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -241,6 +243,14 @@ Global
 		{23C7AC3F-72D6-413D-83A0-4D2CA28573EA}.Release|x64.Build.0 = Release|x64
 		{23C7AC3F-72D6-413D-83A0-4D2CA28573EA}.Release|x86.ActiveCfg = Release|Win32
 		{23C7AC3F-72D6-413D-83A0-4D2CA28573EA}.Release|x86.Build.0 = Release|Win32
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Debug|x64.ActiveCfg = Debug|x64
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Debug|x64.Build.0 = Debug|x64
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Debug|x86.ActiveCfg = Debug|Win32
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Debug|x86.Build.0 = Debug|Win32
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Release|x64.ActiveCfg = Release|x64
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Release|x64.Build.0 = Release|x64
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Release|x86.ActiveCfg = Release|Win32
+		{D4A4ABD3-8930-4FAA-9E84-FFC96800048C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
