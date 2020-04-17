@@ -308,7 +308,7 @@ int main()
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0,
 		&_vsBlob,
-		&errorBlob 
+		&errorBlob
 	);
 	if (FAILED(result))
 	{
@@ -336,7 +336,7 @@ int main()
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0,
 		&_psBlob,
-		&errorBlob 
+		&errorBlob
 	);
 	if (FAILED(result))
 	{
@@ -374,20 +374,28 @@ int main()
 	uvInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	uvInputLayout.InstanceDataStepRate = 0;
 
-	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {posInputLayout, uvInputLayout};
+	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = { posInputLayout, uvInputLayout };
 
 	// テクスチャ用のルートシグネチャ設定
-	D3D12_DESCRIPTOR_RANGE descTblRange = {};
-	descTblRange.NumDescriptors = 1;
-	descTblRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descTblRange.BaseShaderRegister = 0;
-	descTblRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
+	descTblRange[0].NumDescriptors = 1;
+	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	descTblRange[0].BaseShaderRegister = 0;
+	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	descTblRange[1].NumDescriptors = 1;
+	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	descTblRange[1].BaseShaderRegister = 0;
+	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	D3D12_ROOT_PARAMETER rootparam = {};
-	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange;
-	rootparam.DescriptorTable.NumDescriptorRanges = 1;
+	D3D12_ROOT_PARAMETER rootparam[2] = {};
+	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];
+	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
+	rootparam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];
+	rootparam[1].DescriptorTable.NumDescriptorRanges = 1;
 
 	// サンプラ用のルートシグネチャ設定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -404,8 +412,8 @@ int main()
 	// ルートシグネチャ作成
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rootSignatureDesc.pParameters = &rootparam;
-	rootSignatureDesc.NumParameters = 1;
+	rootSignatureDesc.pParameters = rootparam;
+	rootSignatureDesc.NumParameters = 2;
 	rootSignatureDesc.pStaticSamplers = &samplerDesc;
 	rootSignatureDesc.NumStaticSamplers = 1;
 
@@ -497,7 +505,7 @@ int main()
 
 	ID3D12Resource* texbuff = nullptr;
 	result = _dev->CreateCommittedResource(
-		&texHeapProp ,
+		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&texResDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -531,15 +539,15 @@ int main()
 	result = constBuff->Map(0, nullptr, (void**)&mapMatrix);
 	*mapMatrix = matrix;
 
-	// ディスクリプタヒープとSRV作成
-	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
-	texHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	texHeapDesc.NodeMask = 0;
-	texHeapDesc.NumDescriptors = 1;
-	texHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	// ディスクリプタヒープとSRVとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
+	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	basicHeapDesc.NodeMask = 0;
+	basicHeapDesc.NumDescriptors = 2;
+	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	ID3D12DescriptorHeap* texDescHeap = nullptr;
-	result = _dev->CreateDescriptorHeap(&texHeapDesc, IID_PPV_ARGS(&texDescHeap));
+	ID3D12DescriptorHeap* basicDescHeap = nullptr;
+	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(&basicDescHeap));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = metadata.format;
@@ -547,12 +555,24 @@ int main()
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
+	D3D12_CPU_DESCRIPTOR_HANDLE basicHeapHandle = basicDescHeap->GetCPUDescriptorHandleForHeapStart();
+
 	_dev->CreateShaderResourceView(
 		texbuff,
 		&srvDesc,
-		texDescHeap->GetCPUDescriptorHandleForHeapStart()
+		basicHeapHandle
 	);
 
+	basicHeapHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = constBuff->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)constBuff->GetDesc().Width;
+
+	_dev->CreateConstantBufferView(
+		&cbvDesc,
+		basicHeapHandle
+	);
 
 	MSG msg = {};
 
@@ -601,8 +621,8 @@ int main()
 		_cmdList->IASetIndexBuffer(&ibView);
 
 		_cmdList->SetGraphicsRootSignature(rootsignature);
-		_cmdList->SetDescriptorHeaps(1, &texDescHeap);
-		_cmdList->SetGraphicsRootDescriptorTable(0, texDescHeap->GetGPUDescriptorHandleForHeapStart());
+		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
+		_cmdList->SetGraphicsRootDescriptorTable(0, basicDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 		_cmdList->DrawInstanced(4, 1, 0, 0);
 		_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
