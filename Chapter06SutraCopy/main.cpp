@@ -190,22 +190,16 @@ int main()
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 
-#if 1
 	// SRGBテクスチャ対応
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-#endif
 
 	std::vector<ID3D12Resource*> _backBuffers(swapchainDesc.BufferCount);
 	for (UINT i = 0; i < swapchainDesc.BufferCount; ++i)
 	{
 		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&_backBuffers[i]));
-#if 1
 		_dev->CreateRenderTargetView(_backBuffers[i], &rtvDesc, handle);
-#else
-		_dev->CreateRenderTargetView(_backBuffers[i], nullptr, handle);
-#endif
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 
@@ -474,28 +468,11 @@ int main()
 	scissorrect.right = scissorrect.left + window_width;
 	scissorrect.bottom = scissorrect.top + window_height;
 
-#if 1
 	// WICテクスチャのロード
 	TexMetadata metadata = {};
 	ScratchImage scratchImg = {};
 	result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
 	const Image* img = scratchImg.GetImage(0, 0, 0);
-#else
-	// ノイズテクスチャの作成
-	struct TexRGBA
-	{
-		unsigned char R, G, B, A;
-	};
-	std::vector<TexRGBA> texturedata(256 * 256);
-
-	for (TexRGBA& rbga : texturedata)
-	{
-		rbga.R = rand() % 256;
-		rbga.G = rand() % 256;
-		rbga.B = rand() % 256;
-		rbga.A = 255;
-	}
-#endif
 
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = {};
@@ -506,21 +483,12 @@ int main()
 	texHeapProp.VisibleNodeMask = 0;
 
 	D3D12_RESOURCE_DESC texResDesc = {};
-#if 1
 	texResDesc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metadata.dimension);
 	texResDesc.Width = (UINT)metadata.width;
 	texResDesc.Height = (UINT)metadata.height;
 	texResDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
 	texResDesc.MipLevels = (UINT16)metadata.mipLevels;
 	texResDesc.Format = metadata.format;
-#else
-	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texResDesc.Width = 256;
-	texResDesc.Height = 256;
-	texResDesc.DepthOrArraySize = 1;
-	texResDesc.MipLevels = 1;
-	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-#endif
 	texResDesc.SampleDesc.Count = 1;
 	texResDesc.SampleDesc.Quality = 0;
 	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -537,7 +505,6 @@ int main()
 	);
 
 	// テクスチャバッファへ作成したテクスチャデータを書き込み
-#if 1
 	result = texbuff->WriteToSubresource(
 		0,
 		nullptr,
@@ -545,15 +512,6 @@ int main()
 		(UINT)img->rowPitch,
 		(UINT)img->slicePitch
 	);
-#else
-	result = texbuff->WriteToSubresource(
-		0,
-		nullptr,
-		texturedata.data(),
-		(UINT)(sizeof(TexRGBA) * 256),
-		(UINT)(sizeof(TexRGBA) * texturedata.size())
-	);
-#endif
 
 	// ディスクリプタヒープとSRV作成
 	D3D12_DESCRIPTOR_HEAP_DESC texHeapDesc = {};
@@ -566,11 +524,7 @@ int main()
 	result = _dev->CreateDescriptorHeap(&texHeapDesc, IID_PPV_ARGS(&texDescHeap));
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-#if 1
 	srvDesc.Format = metadata.format;
-#else
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-#endif
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
