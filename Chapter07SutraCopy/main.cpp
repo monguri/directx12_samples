@@ -212,57 +212,51 @@ int main()
 
 	ShowWindow(hwnd, SW_SHOW);
 
-	struct Vertex
+	// PMDヘッダ格納データ
+	struct PMDHeader
 	{
-		XMFLOAT3 pos;
-		XMFLOAT2 uv;
+		float version;
+		char model_name[20];
+		char comment[256];
 	};
 
-	// 頂点バッファの作成
-	Vertex vertices[] = {
-		{{-1.0f, -1.0f, 0.0f}, {0.0, 1.0}}, // 左下
-		{{-1.0f, 1.0f, 0.0f}, {0.0, 0.0}}, // 左上
-		{{1.0f, -1.0f, 0.0f}, {1.0, 1.0}}, // 右下
-		{{1.0f, 1.0f, 0.0f}, {1.0, 0.0}}, // 右上
-	};
+	char signature[3];
+	PMDHeader pmdheader = {};
+	FILE* fp = nullptr;
+	errno_t error = fopen_s(&fp, "Model/初音ミク.pmd", "rb");
+	fread(signature, sizeof(signature), 1, fp);
+	fread(&pmdheader, sizeof(pmdheader), 1, fp);
 
-	D3D12_HEAP_PROPERTIES heapprop = {};
-	heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	unsigned int vertNum;
+	fread(&vertNum, sizeof(vertNum), 1, fp);
 
-	D3D12_RESOURCE_DESC resdesc = {};
-	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	resdesc.Width = sizeof(vertices);
-	resdesc.Height = 1;
-	resdesc.DepthOrArraySize = 1;
-	resdesc.MipLevels = 1;
-	resdesc.Format = DXGI_FORMAT_UNKNOWN;
-	resdesc.SampleDesc.Count = 1;
-	resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	constexpr unsigned int pmdvertex_size = 38;
+	std::vector<unsigned char> vertices(vertNum * pmdvertex_size);
+	fread(vertices.data(), vertices.size(), 1, fp);
+
+	fclose(fp);
 
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
-		&heapprop,
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&resdesc,
+		&CD3DX12_RESOURCE_DESC::Buffer(vertices.size()),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&vertBuff)
 	);
 
 	// 頂点バッファへのデータ書き込み
-	Vertex* vertMap = nullptr;
+	unsigned char* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
-	std::copy(std::begin(vertices), std::end(vertices), vertMap);
+	std::copy(vertices.begin(), vertices.end(), vertMap);
 	vertBuff->Unmap(0, nullptr);
 
 	// 頂点バッファービューの用意
 	D3D12_VERTEX_BUFFER_VIEW vbView = {};
 	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress();
-	vbView.SizeInBytes = sizeof(vertices);
-	vbView.StrideInBytes = sizeof(vertices[0]);
+	vbView.SizeInBytes = vertices.size();
+	vbView.StrideInBytes = pmdvertex_size;
 
 	// インデックスバッファの作成
 	unsigned short indices[] = {
@@ -365,16 +359,59 @@ int main()
 	posInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	posInputLayout.InstanceDataStepRate = 0;
 
-	D3D12_INPUT_ELEMENT_DESC uvInputLayout;
-	uvInputLayout.SemanticName = "TEXCOORD";
-	uvInputLayout.SemanticIndex = 0;
-	uvInputLayout.Format = DXGI_FORMAT_R32G32_FLOAT;
-	uvInputLayout.InputSlot = 0;
-	uvInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	uvInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	uvInputLayout.InstanceDataStepRate = 0;
+	D3D12_INPUT_ELEMENT_DESC normalInputLayout;
+	normalInputLayout.SemanticName = "NORMAL";
+	normalInputLayout.SemanticIndex = 0;
+	normalInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	normalInputLayout.InputSlot = 0;
+	normalInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	normalInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	normalInputLayout.InstanceDataStepRate = 0;
 
-	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = { posInputLayout, uvInputLayout };
+	D3D12_INPUT_ELEMENT_DESC texcoordInputLayout;
+	texcoordInputLayout.SemanticName = "TEXCOORD";
+	texcoordInputLayout.SemanticIndex = 0;
+	texcoordInputLayout.Format = DXGI_FORMAT_R32G32_FLOAT;
+	texcoordInputLayout.InputSlot = 0;
+	texcoordInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	texcoordInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	texcoordInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC bonenoInputLayout;
+	bonenoInputLayout.SemanticName = "BONE_NO";
+	bonenoInputLayout.SemanticIndex = 0;
+	bonenoInputLayout.Format = DXGI_FORMAT_R16G16_UINT;
+	bonenoInputLayout.InputSlot = 0;
+	bonenoInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	bonenoInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	bonenoInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC weightInputLayout;
+	weightInputLayout.SemanticName = "WEIGHT";
+	weightInputLayout.SemanticIndex = 0;
+	weightInputLayout.Format = DXGI_FORMAT_R8_UINT;
+	weightInputLayout.InputSlot = 0;
+	weightInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	weightInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	weightInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC edgeflgInputLayout;
+	edgeflgInputLayout.SemanticName = "EDGE_FLG";
+	edgeflgInputLayout.SemanticIndex = 0;
+	edgeflgInputLayout.Format = DXGI_FORMAT_R8_UINT;
+	edgeflgInputLayout.InputSlot = 0;
+	edgeflgInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	edgeflgInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	edgeflgInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {
+		posInputLayout,
+		normalInputLayout,
+		texcoordInputLayout,
+		bonenoInputLayout,
+		weightInputLayout,
+		edgeflgInputLayout,
+	};
 
 	// テクスチャ用のルートシグネチャ設定
 	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
