@@ -624,6 +624,10 @@ int main()
 		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
 		_cmdList->SetGraphicsRootDescriptorTable(0, basicDescHeap->GetGPUDescriptorHandleForHeapStart());
 
+		D3D12_GPU_DESCRIPTOR_HANDLE heapHandle = basicDescHeap->GetGPUDescriptorHandleForHeapStart();
+		heapHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		_cmdList->SetGraphicsRootDescriptorTable(1, heapHandle);
+
 		_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 		// レンダーターゲット状態からPresent状態にする
