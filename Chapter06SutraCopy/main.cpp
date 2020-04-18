@@ -598,6 +598,8 @@ int main()
 	);
 
 	MSG msg = {};
+	unsigned int frame = 0;
+	float angle = 0.0f;
 
 	while (true)
 	{
@@ -611,6 +613,10 @@ int main()
 		{
 			break;
 		}
+
+		angle += 0.1f;
+		worldMat = XMMatrixRotationY(angle);
+		*mapMatrix = worldMat * viewMat * projMat;
 
 		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
@@ -632,8 +638,13 @@ int main()
 		_cmdList->OMSetRenderTargets(1, &rtvH, false, nullptr);
 
 		// レンダーターゲットをクリアする
-		float clearColor[] = {1.0f, 1.0f, 0.0f, 1.0f}; // 黄色
+		float r, g, b;
+		r = (float)(0xff & frame >> 4) / 255.0f;
+		g = (float)(0xff & frame >> 2) / 255.0f;
+		b = (float)(0xff & frame >> 0) / 255.0f;
+		float clearColor[] = {r, g, b, 1.0f};
 		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
+		++frame;
 
 		// 三角形を描画する
 		_cmdList->RSSetViewports(1, &viewport);
