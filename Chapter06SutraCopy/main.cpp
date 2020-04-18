@@ -220,10 +220,10 @@ int main()
 
 	// 頂点バッファの作成
 	Vertex vertices[] = {
-		{{0.0f, 100.0f, 0.0f}, {0.0, 1.0}}, // 左下
-		{{0.0f, 0.0f, 0.0f}, {0.0, 0.0}}, // 左上
-		{{100.0f, 100.0f, 0.0f}, {1.0, 1.0}}, // 右下
-		{{100.0f, 0.0f, 0.0f}, {1.0, 0.0}}, // 右上
+		{{-1.0f, -1.0f, 0.0f}, {0.0, 1.0}}, // 左下
+		{{-1.0f, 1.0f, 0.0f}, {0.0, 0.0}}, // 左上
+		{{1.0f, -1.0f, 0.0f}, {1.0, 1.0}}, // 右下
+		{{1.0f, 1.0f, 0.0f}, {1.0, 0.0}}, // 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -536,12 +536,17 @@ int main()
 	);
 
 	// 定数バッファ作成
-	XMMATRIX matrix = XMMatrixIdentity();
-	// (0, 0)(1280, 720)のRectから(-1, -1)(1, 1)のRectへの変換
-	matrix.r[0].m128_f32[0] = 2.0f / window_width;
-	matrix.r[1].m128_f32[1] = -2.0f / window_height;
-	matrix.r[3].m128_f32[0] = -1.0f;
-	matrix.r[3].m128_f32[1] = 1.0f;
+	XMMATRIX worldMat = XMMatrixRotationY(XM_PIDIV4);
+	XMFLOAT3 eye(0, 0, -5);
+	XMFLOAT3 target(0, 0, 0);
+	XMFLOAT3 up(0, 1, 0);
+	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
+		XM_PIDIV2,
+		(float)window_width / (float)window_height,
+		1.0f,
+		10.0f
+	);
 
 	ID3D12Resource* constBuff = nullptr;
 	result = _dev->CreateCommittedResource(
@@ -555,7 +560,7 @@ int main()
 
 	XMMATRIX* mapMatrix = nullptr;
 	result = constBuff->Map(0, nullptr, (void**)&mapMatrix);
-	*mapMatrix = matrix;
+	*mapMatrix = worldMat * viewMat * projMat;
 
 	// ディスクリプタヒープとSRVとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
