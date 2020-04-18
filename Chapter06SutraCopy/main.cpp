@@ -387,6 +387,13 @@ int main()
 	descTblRange[1].BaseShaderRegister = 0;
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+#if 1
+	D3D12_ROOT_PARAMETER rootparam = {};
+	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rootparam.DescriptorTable.pDescriptorRanges = descTblRange;
+	rootparam.DescriptorTable.NumDescriptorRanges = 2;
+#else
 	D3D12_ROOT_PARAMETER rootparam[2] = {};
 	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -396,6 +403,7 @@ int main()
 	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];
 	rootparam[1].DescriptorTable.NumDescriptorRanges = 1;
+#endif
 
 	// サンプラ用のルートシグネチャ設定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -412,8 +420,13 @@ int main()
 	// ルートシグネチャ作成
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+#if 1
+	rootSignatureDesc.pParameters = &rootparam;
+	rootSignatureDesc.NumParameters = 1;
+#else
 	rootSignatureDesc.pParameters = rootparam;
 	rootSignatureDesc.NumParameters = 2;
+#endif
 	rootSignatureDesc.pStaticSamplers = &samplerDesc;
 	rootSignatureDesc.NumStaticSamplers = 1;
 
@@ -624,9 +637,11 @@ int main()
 		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
 		_cmdList->SetGraphicsRootDescriptorTable(0, basicDescHeap->GetGPUDescriptorHandleForHeapStart());
 
+#if 0
 		D3D12_GPU_DESCRIPTOR_HANDLE heapHandle = basicDescHeap->GetGPUDescriptorHandleForHeapStart();
 		heapHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		_cmdList->SetGraphicsRootDescriptorTable(1, heapHandle);
+#endif
 
 		_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
