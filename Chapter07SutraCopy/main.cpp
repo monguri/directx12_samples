@@ -234,7 +234,8 @@ int main()
 	std::vector<unsigned char> vertices(vertNum * pmdvertex_size);
 	fread(vertices.data(), vertices.size(), 1, fp);
 
-	fclose(fp);
+	unsigned int indicesNum;
+	fread(&indicesNum, sizeof(indicesNum), 1, fp);
 
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
@@ -257,6 +258,33 @@ int main()
 	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress();
 	vbView.SizeInBytes = (UINT)vertices.size();
 	vbView.StrideInBytes = pmdvertex_size;
+
+	std::vector<unsigned short> indices(indicesNum);
+	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);
+
+	fclose(fp);
+
+	ID3D12Resource* idxBuff = nullptr;
+	result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(indices.size() * sizeof(indices[0])),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&idxBuff)
+	);
+
+	// インデックスバッファへのデータ書き込み
+	unsigned short* idxMap = nullptr;
+	result = idxBuff->Map(0, nullptr, (void**)&idxMap);
+	std::copy(indices.begin(), indices.end(), idxMap);
+	idxBuff->Unmap(0, nullptr);
+
+	// インデックスバッファービューの用意
+	D3D12_INDEX_BUFFER_VIEW ibView = {};
+	ibView.BufferLocation = idxBuff->GetGPUVirtualAddress();
+	ibView.Format = DXGI_FORMAT_R16_UINT;
+	ibView.SizeInBytes = (UINT)(indices.size() * sizeof(indices[0]));
 
 	// シェーダの準備
 	ID3DBlob* _vsBlob = nullptr;
@@ -653,8 +681,9 @@ int main()
 		_cmdList->RSSetViewports(1, &viewport);
 		_cmdList->RSSetScissorRects(1, &scissorrect);
 
-		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
+		_cmdList->IASetIndexBuffer(&ibView);
 
 		_cmdList->SetGraphicsRootSignature(rootsignature);
 		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
@@ -666,7 +695,7 @@ int main()
 		_cmdList->SetGraphicsRootDescriptorTable(1, heapHandle);
 #endif
 
-		_cmdList->DrawInstanced(vertNum, 1, 0, 0);
+		_cmdList->DrawIndexedInstanced(indicesNum, 1, 0, 0, 0);
 
 		// レンダーターゲット状態からPresent状態にする
 		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
