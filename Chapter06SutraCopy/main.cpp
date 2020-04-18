@@ -220,10 +220,10 @@ int main()
 
 	// 頂点バッファの作成
 	Vertex vertices[] = {
-		{{-0.5f, -0.9f, 0.0f}, {0.0, 1.0}}, // 左下
-		{{-0.5f, 0.9f, 0.0f}, {0.0, 0.0}}, // 左上
-		{{0.5f, -0.9f, 0.0f}, {1.0, 1.0}}, // 右下
-		{{0.5f, 0.9f, 0.0f}, {1.0, 0.0}}, // 右上
+		{{0.0f, 100.0f, 0.0f}, {0.0, 1.0}}, // 左下
+		{{0.0f, 0.0f, 0.0f}, {0.0, 0.0}}, // 左上
+		{{100.0f, 100.0f, 0.0f}, {1.0, 1.0}}, // 右下
+		{{100.0f, 0.0f, 0.0f}, {1.0, 0.0}}, // 右上
 	};
 
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -537,6 +537,11 @@ int main()
 
 	// 定数バッファ作成
 	XMMATRIX matrix = XMMatrixIdentity();
+	// (0, 0)(1280, 720)のRectから(-1, -1)(1, 1)のRectへの変換
+	matrix.r[0].m128_f32[0] = 2.0f / window_width;
+	matrix.r[1].m128_f32[1] = -2.0f / window_height;
+	matrix.r[3].m128_f32[0] = -1.0f;
+	matrix.r[3].m128_f32[1] = 1.0f;
 
 	ID3D12Resource* constBuff = nullptr;
 	result = _dev->CreateCommittedResource(
