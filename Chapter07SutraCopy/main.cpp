@@ -255,38 +255,8 @@ int main()
 	// 頂点バッファービューの用意
 	D3D12_VERTEX_BUFFER_VIEW vbView = {};
 	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress();
-	vbView.SizeInBytes = vertices.size();
+	vbView.SizeInBytes = (UINT)vertices.size();
 	vbView.StrideInBytes = pmdvertex_size;
-
-	// インデックスバッファの作成
-	unsigned short indices[] = {
-		0, 1, 2,
-		2, 1, 3,
-	};
-
-	ID3D12Resource* idxBuff = nullptr;
-	// DESCは頂点バッファのを使いまわし
-	resdesc.Width = sizeof(indices);
-	result = _dev->CreateCommittedResource(
-		&heapprop,
-		D3D12_HEAP_FLAG_NONE,
-		&resdesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&idxBuff)
-	);
-
-	// インデックスバッファへのデータ書き込み
-	unsigned short* mappedIdx = nullptr;
-	result = idxBuff->Map(0, nullptr, (void**)&mappedIdx);
-	std::copy(std::begin(indices), std::end(indices), mappedIdx);
-	idxBuff->Unmap(0, nullptr);
-
-	// インデックスバッファービューの用意
-	D3D12_INDEX_BUFFER_VIEW ibView = {};
-	ibView.BufferLocation = idxBuff->GetGPUVirtualAddress();
-	ibView.Format = DXGI_FORMAT_R16_UINT;
-	ibView.SizeInBytes = sizeof(indices);
 
 	// シェーダの準備
 	ID3DBlob* _vsBlob = nullptr;
@@ -574,15 +544,15 @@ int main()
 
 	// 定数バッファ作成
 	XMMATRIX worldMat = XMMatrixRotationY(XM_PIDIV4);
-	XMFLOAT3 eye(0, 0, -5);
-	XMFLOAT3 target(0, 0, 0);
+	XMFLOAT3 eye(0, 10, -15);
+	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
 		XM_PIDIV2,
 		(float)window_width / (float)window_height,
 		1.0f,
-		10.0f
+		100.0f
 	);
 
 	ID3D12Resource* constBuff = nullptr;
@@ -675,11 +645,7 @@ int main()
 		_cmdList->OMSetRenderTargets(1, &rtvH, false, nullptr);
 
 		// レンダーターゲットをクリアする
-		float r, g, b;
-		r = (float)(0xff & frame >> 4) / 255.0f;
-		g = (float)(0xff & frame >> 2) / 255.0f;
-		b = (float)(0xff & frame >> 0) / 255.0f;
-		float clearColor[] = {r, g, b, 1.0f};
+		float clearColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 		++frame;
 
@@ -689,7 +655,6 @@ int main()
 
 		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
-		_cmdList->IASetIndexBuffer(&ibView);
 
 		_cmdList->SetGraphicsRootSignature(rootsignature);
 		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
@@ -701,7 +666,7 @@ int main()
 		_cmdList->SetGraphicsRootDescriptorTable(1, heapHandle);
 #endif
 
-		_cmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+		_cmdList->DrawInstanced(vertNum, 1, 0, 0);
 
 		// レンダーターゲット状態からPresent状態にする
 		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
