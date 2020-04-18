@@ -653,7 +653,7 @@ int main()
 		_cmdList->RSSetViewports(1, &viewport);
 		_cmdList->RSSetScissorRects(1, &scissorrect);
 
-		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 		_cmdList->IASetVertexBuffers(0, 1, &vbView);
 
 		_cmdList->SetGraphicsRootSignature(rootsignature);
