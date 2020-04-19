@@ -789,9 +789,19 @@ int main()
 		_cmdList->SetGraphicsRootDescriptorTable(0, basicDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 		_cmdList->SetDescriptorHeaps(1, &materialDescHeap);
-		_cmdList->SetGraphicsRootDescriptorTable(1, materialDescHeap->GetGPUDescriptorHandleForHeapStart());
 
-		_cmdList->DrawIndexedInstanced(indicesNum, 1, 0, 0, 0);
+		// マテリアルセクションごとにマテリアルを切り替えて描画
+		D3D12_GPU_DESCRIPTOR_HANDLE materialH = materialDescHeap->GetGPUDescriptorHandleForHeapStart();
+		unsigned int idxOffset = 0;
+		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		for (const Material& m : materials)
+		{
+			_cmdList->SetGraphicsRootDescriptorTable(1, materialH);
+			_cmdList->DrawIndexedInstanced(m.indicesNum, 1, idxOffset, 0, 0);
+			materialH.ptr += cbvsrvIncSize;
+			idxOffset += m.indicesNum;
+		}
 
 		// レンダーターゲット状態からPresent状態にする
 		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
