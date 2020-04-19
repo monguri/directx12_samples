@@ -394,6 +394,54 @@ int main()
 	ibView.Format = DXGI_FORMAT_R16_UINT;
 	ibView.SizeInBytes = (UINT)(indices.size() * sizeof(indices[0]));
 
+	// マテリアルバッファを作成
+	// sizeof(MaterialForHlsl)の44バイトを256でアラインメントしているので256。
+	// かなりもったいない
+	// TODO:定数バッファをマテリアル数だけ作っているから、一個にまとめられないか？
+	size_t materialBuffSize = (sizeof(MaterialForHlsl) + 0xff) & ~0xff;
+	ID3D12Resource* materialBuff = nullptr;
+	result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(materialBuffSize * materialNum),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&materialBuff)
+	);
+
+	char* mapMaterial = nullptr;
+	result = materialBuff->Map(0, nullptr, (void**)&mapMaterial);
+	for (const Material& m : materials)
+	{
+		*((MaterialForHlsl*)mapMaterial) = m.material;
+		mapMaterial += materialBuffSize;
+	}
+	materialBuff->Unmap(0, nullptr);
+
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
+	materialDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	materialDescHeapDesc.NodeMask = 0;
+	materialDescHeapDesc.NumDescriptors = materialNum;
+	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	ID3D12DescriptorHeap* materialDescHeap = nullptr;
+	result = _dev->CreateDescriptorHeap(&materialDescHeapDesc, IID_PPV_ARGS(&materialDescHeap));
+	D3D12_CONSTANT_BUFFER_VIEW_DESC matCBVDesc = {};
+	matCBVDesc.BufferLocation = materialBuff->GetGPUVirtualAddress();
+	matCBVDesc.SizeInBytes = (UINT)materialBuffSize;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE matDescHeapH = materialDescHeap->GetCPUDescriptorHandleForHeapStart();
+	UINT incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	for (unsigned int i = 0; i < materialNum; ++i)
+	{
+		_dev->CreateConstantBufferView(&matCBVDesc, matDescHeapH);
+		matDescHeapH.ptr += incSize;
+		matCBVDesc.BufferLocation += materialBuffSize;
+	}
+
+
 	// シェーダの準備
 	ID3DBlob* _vsBlob = nullptr;
 	ID3DBlob* _psBlob = nullptr;
