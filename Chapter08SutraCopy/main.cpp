@@ -272,6 +272,51 @@ int main()
 	unsigned int vertNum;
 	fread(&vertNum, sizeof(vertNum), 1, fp);
 
+#pragma pack(1)
+	// PMDマテリアルデータ読み出し用
+	// PMDはフォンシェーディングの模様
+	struct PMDMaterial
+	{
+		XMFLOAT3 diffuse;
+		float alpha;
+		float specularity;
+		XMFLOAT3 specular;
+		XMFLOAT3 ambient;
+		unsigned char toonIdx;
+		unsigned char edgeFlg;
+		// 本来ここでこの構造体は2バイトのパディングが発生する
+		unsigned int indicesNum;
+		char texFilePath[20];
+	}; // pack(1)がなければ70バイトのはずが72バイトになる
+#pragma pack()
+
+	// シェーダに渡すために必要なものだけ選択したデータ
+	struct MaterialForHlsl
+	{
+		XMFLOAT3 diffuse;
+		float alpha;
+		XMFLOAT3 specular;
+		float specularity;
+		XMFLOAT3 ambient;
+	};
+
+	// PMDMaterialのうち、MaterialForHlsl以外のマテリアル情報をもっておく
+	// ためのデータ
+	struct AdditionalMaterial
+	{
+		std::string texPath;
+		int toonIdx;
+		bool edgeFlg;
+	};
+
+	// MaterialForHlslとAdditionalMaterialをまとめたもの
+	struct Material
+	{
+		unsigned int indicesNum;
+		MaterialForHlsl material;
+		AdditionalMaterial additional;
+	};
+
 	constexpr unsigned int pmdvertex_size = 38;
 	std::vector<unsigned char> vertices(vertNum * pmdvertex_size);
 	fread(vertices.data(), vertices.size(), 1, fp);
@@ -303,6 +348,27 @@ int main()
 
 	std::vector<unsigned short> indices(indicesNum);
 	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);
+
+	// マテリアル情報の読み出し
+	unsigned int materialNum;
+	fread(&materialNum, sizeof(materialNum), 1, fp);
+
+	std::vector<Material> materials(materialNum);
+
+	{
+		std::vector<PMDMaterial> pmdMaterials(materialNum);
+		fread(pmdMaterials.data(), pmdMaterials.size() * sizeof(PMDMaterial), 1, fp);
+
+		for (int i = 0; i < pmdMaterials.size(); ++i)
+		{
+			materials[i].indicesNum = pmdMaterials[i].indicesNum;
+			materials[i].material.diffuse = pmdMaterials[i].diffuse;
+			materials[i].material.alpha = pmdMaterials[i].alpha;
+			materials[i].material.specular = pmdMaterials[i].specular;
+			materials[i].material.specularity = pmdMaterials[i].specularity;
+			materials[i].material.ambient = pmdMaterials[i].ambient;
+		}
+	}
 
 	fclose(fp);
 
