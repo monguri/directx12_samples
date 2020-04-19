@@ -454,33 +454,17 @@ int main()
 	};
 
 	// テクスチャ用のルートシグネチャ設定
-	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
+	D3D12_DESCRIPTOR_RANGE descTblRange[1] = {};
 	descTblRange[0].NumDescriptors = 1;
-	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	descTblRange[0].BaseShaderRegister = 0;
 	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	descTblRange[1].NumDescriptors = 1;
-	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	descTblRange[1].BaseShaderRegister = 0;
-	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-#if 1
 	D3D12_ROOT_PARAMETER rootparam = {};
 	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rootparam.DescriptorTable.pDescriptorRanges = descTblRange;
-	rootparam.DescriptorTable.NumDescriptorRanges = 2;
-#else
-	D3D12_ROOT_PARAMETER rootparam[2] = {};
-	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];
-	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
-	rootparam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];
-	rootparam[1].DescriptorTable.NumDescriptorRanges = 1;
-#endif
+	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange[0];
+	rootparam.DescriptorTable.NumDescriptorRanges = 1;
 
 	// サンプラ用のルートシグネチャ設定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -497,13 +481,8 @@ int main()
 	// ルートシグネチャ作成
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-#if 1
 	rootSignatureDesc.pParameters = &rootparam;
 	rootSignatureDesc.NumParameters = 1;
-#else
-	rootSignatureDesc.pParameters = rootparam;
-	rootSignatureDesc.NumParameters = 2;
-#endif
 	rootSignatureDesc.pStaticSamplers = &samplerDesc;
 	rootSignatureDesc.NumStaticSamplers = 1;
 
@@ -572,51 +551,6 @@ int main()
 	scissorrect.right = scissorrect.left + window_width;
 	scissorrect.bottom = scissorrect.top + window_height;
 
-	// WICテクスチャのロード
-	TexMetadata metadata = {};
-	ScratchImage scratchImg = {};
-	result = LoadFromWICFile(L"img/textest.png", WIC_FLAGS_NONE, &metadata, scratchImg);
-	const Image* img = scratchImg.GetImage(0, 0, 0);
-
-	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-	texHeapProp.CreationNodeMask = 0;
-	texHeapProp.VisibleNodeMask = 0;
-
-	D3D12_RESOURCE_DESC texResDesc = {};
-	texResDesc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metadata.dimension);
-	texResDesc.Width = (UINT)metadata.width;
-	texResDesc.Height = (UINT)metadata.height;
-	texResDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
-	texResDesc.MipLevels = (UINT16)metadata.mipLevels;
-	texResDesc.Format = metadata.format;
-	texResDesc.SampleDesc.Count = 1;
-	texResDesc.SampleDesc.Quality = 0;
-	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	ID3D12Resource* texbuff = nullptr;
-	result = _dev->CreateCommittedResource(
-		&texHeapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&texResDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		nullptr,
-		IID_PPV_ARGS(&texbuff)
-	);
-
-	// テクスチャバッファへ作成したテクスチャデータを書き込み
-	result = texbuff->WriteToSubresource(
-		0,
-		nullptr,
-		img->pixels,
-		(UINT)img->rowPitch,
-		(UINT)img->slicePitch
-	);
-
 	// 定数バッファ用データ
 	struct MatricesData
 	{
@@ -652,31 +586,16 @@ int main()
 	mapMatrix->world = worldMat;
 	mapMatrix->viewproj = viewMat * projMat;
 
-	// ディスクリプタヒープとSRVとCBV作成
+	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
 	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	basicHeapDesc.NodeMask = 0;
-	basicHeapDesc.NumDescriptors = 2;
+	basicHeapDesc.NumDescriptors = 1;
 	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ID3D12DescriptorHeap* basicDescHeap = nullptr;
 	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(&basicDescHeap));
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = metadata.format;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-
 	D3D12_CPU_DESCRIPTOR_HANDLE basicHeapHandle = basicDescHeap->GetCPUDescriptorHandleForHeapStart();
-
-	_dev->CreateShaderResourceView(
-		texbuff,
-		&srvDesc,
-		basicHeapHandle
-	);
-
-	basicHeapHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = constBuff->GetGPUVirtualAddress();
@@ -704,7 +623,7 @@ int main()
 			break;
 		}
 
-		angle += 0.01f;
+		angle += 0.005f;
 		worldMat = XMMatrixRotationY(angle);
 		mapMatrix->world = worldMat;
 
@@ -746,12 +665,6 @@ int main()
 		_cmdList->SetGraphicsRootSignature(rootsignature);
 		_cmdList->SetDescriptorHeaps(1, &basicDescHeap);
 		_cmdList->SetGraphicsRootDescriptorTable(0, basicDescHeap->GetGPUDescriptorHandleForHeapStart());
-
-#if 0
-		D3D12_GPU_DESCRIPTOR_HANDLE heapHandle = basicDescHeap->GetGPUDescriptorHandleForHeapStart();
-		heapHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		_cmdList->SetGraphicsRootDescriptorTable(1, heapHandle);
-#endif
 
 		_cmdList->DrawIndexedInstanced(indicesNum, 1, 0, 0, 0);
 

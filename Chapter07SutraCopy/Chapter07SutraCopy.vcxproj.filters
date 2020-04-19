@@ -20,11 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="img\textest.png">
-      <Filter>リソース ファイル</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="BasicPixelShader.hlsl" />
     <FxCompile Include="BasicVertexShader.hlsl" />
   </ItemGroup>
