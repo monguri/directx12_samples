@@ -51,6 +51,17 @@ ID3D12GraphicsCommandList* _cmdList = nullptr;
 ID3D12CommandQueue* _cmdQueue = nullptr;
 IDXGISwapChain4* _swapchain = nullptr;
 
+std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, const char* texPath)
+{
+	// フォルダ区切りが/でも\でも対応できるようにする。
+	// rfindは見つからなかったらepos(-1、0xffffffff)を返す。
+	int pathIndex1 = (int)modelPath.rfind('/');
+	int pathIndex2 = (int)modelPath.rfind('\\');
+	int pathIndex = max(pathIndex1, pathIndex2);
+	const std::string& folderPath = modelPath.substr(0, pathIndex + 1);
+	return folderPath + texPath;
+}
+
 void EnableDebugLayer()
 {
 	ID3D12Debug* debugLayer = nullptr;
