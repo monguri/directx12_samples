@@ -53,6 +53,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter06SutraCopy", "Chapt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter07SutraCopy", "Chapter07SutraCopy\Chapter07SutraCopy.vcxproj", "{4C70B76A-1A4C-4C25-9405-FDA7BB056192}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter08SutraCopy", "Chapter08SutraCopy\Chapter08SutraCopy.vcxproj", "{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -261,6 +263,14 @@ Global
 		{4C70B76A-1A4C-4C25-9405-FDA7BB056192}.Release|x64.Build.0 = Release|x64
 		{4C70B76A-1A4C-4C25-9405-FDA7BB056192}.Release|x86.ActiveCfg = Release|Win32
 		{4C70B76A-1A4C-4C25-9405-FDA7BB056192}.Release|x86.Build.0 = Release|Win32
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Debug|x64.ActiveCfg = Debug|x64
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Debug|x64.Build.0 = Debug|x64
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Debug|x86.ActiveCfg = Debug|Win32
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Debug|x86.Build.0 = Debug|Win32
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Release|x64.ActiveCfg = Release|x64
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Release|x64.Build.0 = Release|x64
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Release|x86.ActiveCfg = Release|Win32
+		{BE933D8E-F7AA-4595-88E4-40A864F0CBD4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
