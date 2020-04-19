@@ -617,6 +617,13 @@ int main()
 		(UINT)img->slicePitch
 	);
 
+	// 定数バッファ用データ
+	struct MatricesData
+	{
+		XMMATRIX world;
+		XMMATRIX viewproj;
+	};
+
 	// 定数バッファ作成
 	XMMATRIX worldMat = XMMatrixRotationY(XM_PIDIV4);
 	XMFLOAT3 eye(0, 10, -15);
@@ -634,15 +641,16 @@ int main()
 	result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(XMMATRIX) + 0xff) & ~0xff),
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(MatricesData) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&constBuff)
 	);
 
-	XMMATRIX* mapMatrix = nullptr;
+	MatricesData* mapMatrix = nullptr;
 	result = constBuff->Map(0, nullptr, (void**)&mapMatrix);
-	*mapMatrix = worldMat * viewMat * projMat;
+	mapMatrix->world = worldMat;
+	mapMatrix->viewproj = viewMat * projMat;
 
 	// ディスクリプタヒープとSRVとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
@@ -698,7 +706,7 @@ int main()
 
 		angle += 0.01f;
 		worldMat = XMMatrixRotationY(angle);
-		*mapMatrix = worldMat * viewMat * projMat;
+		mapMatrix->world = worldMat;
 
 		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 

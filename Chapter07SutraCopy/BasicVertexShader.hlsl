@@ -3,7 +3,8 @@
 // 定数バッファ
 cbuffer cubuff0 : register(b0)
 {
-	matrix mat;
+	matrix world;
+	matrix viewproj;
 }
 
 Output BasicVS(
@@ -15,8 +16,9 @@ min16uint2 weight : WEIGHT
 )
 {
 	Output output;
-	output.pos = mul(mat, pos);
-	output.normal = normal;
+	output.pos = mul(mul(viewproj, world), pos);
+	normal.w = 0;
+	output.normal = mul(world, normal);
 	output.uv = uv;
 	return output;
 }
