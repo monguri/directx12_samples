@@ -696,7 +696,7 @@ int main()
 			break;
 		}
 
-		angle += 0.1f;
+		angle += 0.01f;
 		worldMat = XMMatrixRotationY(angle);
 		*mapMatrix = worldMat * viewMat * projMat;
 
