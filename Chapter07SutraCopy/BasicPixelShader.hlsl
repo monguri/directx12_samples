@@ -4,5 +4,7 @@ SamplerState smp : register(s0);
 
 float4 BasicPS(Output input) : SV_Target
 {
-	return float4(input.normal.xyz, 1);
+	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
+	float brightness = dot(-light, input.normal);
+	return float4(brightness, brightness, brightness, 1);
 }
