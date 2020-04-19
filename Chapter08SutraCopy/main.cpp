@@ -62,6 +62,37 @@ std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, cons
 	return folderPath + texPath;
 }
 
+std::wstring GetWildStringFromString(const std::string& str)
+{
+	// MultiByteToWideCharで使うには先にwchar_t配列を必要なサイズの確保が必要。
+	// 固定長配列を返してもいいがstd::wstringの方が扱いやすいので
+	// 先に長さを取得してresizeしておく
+
+	// 引数の文字列の長さ取得
+	int num1 = MultiByteToWideChar(
+		CP_ACP,
+		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+		str.c_str(),
+		-1,
+		nullptr,
+		0
+	);
+	std::wstring wstr;
+	wstr.resize(num1);
+
+	int num2 = MultiByteToWideChar(
+		CP_ACP,
+		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+		str.c_str(),
+		-1,
+		&wstr[0],
+		0
+	);
+
+	assert(num1 == num2);
+	return wstr;
+}
+
 void EnableDebugLayer()
 {
 	ID3D12Debug* debugLayer = nullptr;
