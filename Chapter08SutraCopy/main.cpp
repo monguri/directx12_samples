@@ -93,6 +93,63 @@ std::wstring GetWideStringFromString(const std::string& str)
 	return wstr;
 }
 
+ID3D12Resource* CreateWhiteTexture()
+{
+	// テクスチャバッファ作成
+	D3D12_HEAP_PROPERTIES texHeapProp = {};
+	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	texHeapProp.CreationNodeMask = 0;
+	texHeapProp.VisibleNodeMask = 0;
+
+	D3D12_RESOURCE_DESC texResDesc = {};
+	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texResDesc.Width = 4;
+	texResDesc.Height = 4;
+	texResDesc.DepthOrArraySize = 1;
+	texResDesc.SampleDesc.Count = 1;
+	texResDesc.SampleDesc.Quality = 0;
+	texResDesc.MipLevels = 1;
+	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	ID3D12Resource* texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&texResDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&texbuff)
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	// 4byte 4x4のテクスチャ
+	std::vector<unsigned char> data(4 * 4 * 4);
+	// 0xffで埋めるためRGBAは(255, 255, 255, 255)になる
+	std::fill(data.begin(), data.end(), 0xff);
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		4 * 4,
+		data.size()
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
 ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 {
 	// WICテクスチャのロード
@@ -467,6 +524,9 @@ int main()
 	std::vector<Material> materials(materialNum);
 	std::vector<ID3D12Resource*> textureResources(materialNum);
 
+	ID3D12Resource* whiteTex = CreateWhiteTexture();
+	assert(whiteTex != nullptr);
+
 	{
 		std::vector<PMDMaterial> pmdMaterials(materialNum);
 		fread(pmdMaterials.data(), pmdMaterials.size() * sizeof(PMDMaterial), 1, fp);
@@ -480,14 +540,17 @@ int main()
 			materials[i].material.specularity = pmdMaterials[i].specularity;
 			materials[i].material.ambient = pmdMaterials[i].ambient;
 
-			if (strlen(pmdMaterials[i].texFilePath) == 0)
-			{
-				textureResources[i] = nullptr;
-			}
-			else
+			textureResources[i] = nullptr;
+
+			if (strlen(pmdMaterials[i].texFilePath) > 0)
 			{
 				const std::string& texFilePath = GetTexturePathFromModelAndTexPath(strModelPath, pmdMaterials[i].texFilePath);
 				textureResources[i] = LoadTextureFromFile(texFilePath);
+			}
+
+			if (textureResources[i] == nullptr)
+			{
+				textureResources[i] = whiteTex;
 			}
 		}
 	}
@@ -558,8 +621,7 @@ int main()
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
-	// textureResources[i]がnullの場合のデフォルト値
-	srvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	// Formatはテクスチャによる
 
 	D3D12_CPU_DESCRIPTOR_HANDLE matDescHeapH = materialDescHeap->GetCPUDescriptorHandleForHeapStart();
 	UINT incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -574,12 +636,7 @@ int main()
 		matDescHeapH.ptr += incSize;
 		matCBVDesc.BufferLocation += materialBuffSize;
 
-		if (textureResources[i] != nullptr)
-		{
-			srvDesc.Format = textureResources[i]->GetDesc().Format;
-		}
-
-		// textureResources[i]がnullのときもSRVは作る
+		srvDesc.Format = textureResources[i]->GetDesc().Format;
 		_dev->CreateShaderResourceView(
 			textureResources[i],
 			&srvDesc,
