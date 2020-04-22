@@ -618,6 +618,8 @@ int main()
 			materials[i].material.ambient = pmdMaterials[i].ambient;
 
 			textureResources[i] = nullptr;
+			sphResources[i] = nullptr;
+			spaResources[i] = nullptr;
 
 			if (strlen(pmdMaterials[i].texFilePath) > 0)
 			{
