@@ -1048,7 +1048,8 @@ int main()
 	struct MatricesData
 	{
 		XMMATRIX world;
-		XMMATRIX viewproj;
+		XMMATRIX view;
+		XMMATRIX proj;
 	};
 
 	// 定数バッファ作成
@@ -1077,7 +1078,8 @@ int main()
 	MatricesData* mapMatrix = nullptr;
 	result = constBuff->Map(0, nullptr, (void**)&mapMatrix);
 	mapMatrix->world = worldMat;
-	mapMatrix->viewproj = viewMat * projMat;
+	mapMatrix->view = viewMat;
+	mapMatrix->proj = projMat;
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};

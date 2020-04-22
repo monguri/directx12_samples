@@ -4,7 +4,8 @@
 cbuffer cubuff0 : register(b0)
 {
 	matrix world;
-	matrix viewproj;
+	matrix view;
+	matrix proj;
 }
 
 Output BasicVS(
@@ -16,9 +17,10 @@ min16uint2 weight : WEIGHT
 )
 {
 	Output output;
-	output.pos = mul(mul(viewproj, world), pos);
+	output.pos = mul(mul(proj, mul(view, world)), pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);
+	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
 	return output;
 }
