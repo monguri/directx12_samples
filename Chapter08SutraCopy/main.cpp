@@ -165,6 +165,63 @@ ID3D12Resource* CreateWhiteTexture()
 	return texbuff;
 }
 
+ID3D12Resource* CreateBlackTexture()
+{
+	// テクスチャバッファ作成
+	D3D12_HEAP_PROPERTIES texHeapProp = {};
+	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	texHeapProp.CreationNodeMask = 0;
+	texHeapProp.VisibleNodeMask = 0;
+
+	D3D12_RESOURCE_DESC texResDesc = {};
+	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texResDesc.Width = 4;
+	texResDesc.Height = 4;
+	texResDesc.DepthOrArraySize = 1;
+	texResDesc.SampleDesc.Count = 1;
+	texResDesc.SampleDesc.Quality = 0;
+	texResDesc.MipLevels = 1;
+	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	ID3D12Resource* texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&texResDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&texbuff)
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	// 4byte 4x4のテクスチャ
+	std::vector<unsigned char> data(4 * 4 * 4);
+	// 0x00で埋めるためRGBAは(0, 0, 0, 0)になる
+	std::fill(data.begin(), data.end(), 0x00);
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		4 * 4,
+		(UINT)data.size()
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
 ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 {
 	// WICテクスチャのロード
@@ -448,8 +505,8 @@ int main()
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
 	//std::string strModelPath = "Model/初音ミク.pmd";
-	std::string strModelPath = "Model/初音ミクmetal.pmd";
-	//std::string strModelPath = "Model/巡音ルカ.pmd";
+	//std::string strModelPath = "Model/初音ミクmetal.pmd";
+	std::string strModelPath = "Model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
@@ -541,8 +598,10 @@ int main()
 	std::vector<Material> materials(materialNum);
 	std::vector<ID3D12Resource*> textureResources(materialNum);
 	std::vector<ID3D12Resource*> sphResources(materialNum);
+	std::vector<ID3D12Resource*> spaResources(materialNum);
 
 	ID3D12Resource* whiteTex = CreateWhiteTexture();
+	ID3D12Resource* blackTex = CreateBlackTexture();
 	assert(whiteTex != nullptr);
 
 	{
@@ -617,6 +676,12 @@ int main()
 					const std::string& sphFilePath = GetTexturePathFromModelAndTexPath(strModelPath, sphFileName.c_str());
 					sphResources[i] = LoadTextureFromFile(sphFilePath);
 				}
+
+				if (spaFileName.length() > 0)
+				{
+					const std::string& spaFilePath = GetTexturePathFromModelAndTexPath(strModelPath, spaFileName.c_str());
+					spaResources[i] = LoadTextureFromFile(spaFilePath);
+				}
 			}
 
 			if (textureResources[i] == nullptr)
@@ -627,6 +692,11 @@ int main()
 			if (sphResources[i] == nullptr)
 			{
 				sphResources[i] = whiteTex;
+			}
+
+			if (spaResources[i] == nullptr)
+			{
+				spaResources[i] = blackTex;
 			}
 		}
 	}
@@ -683,7 +753,7 @@ int main()
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
 	materialDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	materialDescHeapDesc.NodeMask = 0;
-	materialDescHeapDesc.NumDescriptors = materialNum * 3; // MaterialForHlslのCBVとテクスチャとsphのSRVの3つずつ
+	materialDescHeapDesc.NumDescriptors = materialNum * 4; // MaterialForHlslのCBVと通常テクスチャとsphとspaのSRVの4つずつ
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ID3D12DescriptorHeap* materialDescHeap = nullptr;
@@ -724,6 +794,15 @@ int main()
 		srvDesc.Format = sphResources[i]->GetDesc().Format;
 		_dev->CreateShaderResourceView(
 			sphResources[i],
+			&srvDesc,
+			matDescHeapH
+		);
+
+		matDescHeapH.ptr += incSize;
+
+		srvDesc.Format = spaResources[i]->GetDesc().Format;
+		_dev->CreateShaderResourceView(
+			spaResources[i],
 			&srvDesc,
 			matDescHeapH
 		);
@@ -865,7 +944,7 @@ int main()
 	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	descTblRange[1].BaseShaderRegister = 1;
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	descTblRange[2].NumDescriptors = 2; // 通常テクスチャとsph
+	descTblRange[2].NumDescriptors = 3; // 通常テクスチャとsphとspa
 	descTblRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descTblRange[2].BaseShaderRegister = 0;
 	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -1086,7 +1165,7 @@ int main()
 		// マテリアルセクションごとにマテリアルを切り替えて描画
 		D3D12_GPU_DESCRIPTOR_HANDLE materialH = materialDescHeap->GetGPUDescriptorHandleForHeapStart();
 		unsigned int idxOffset = 0;
-		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3; // CBVと通常テクスチャとsphのSRV
+		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 4; // CBVと通常テクスチャとsphとspaのSRV
 
 		for (const Material& m : materials)
 		{
