@@ -62,6 +62,21 @@ std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, cons
 	return folderPath + texPath;
 }
 
+std::string GetExtension(const std::string& path)
+{
+	size_t idx = path.rfind('.');
+	return path.substr(idx + 1, path.length() - idx - 1);
+}
+
+std::pair<std::string, std::string> SplitFileName(const std::string& path, const char splitter = '*')
+{
+	size_t idx = path.find(splitter);
+	std::pair<std::string, std::string> ret;
+	ret.first = path.substr(0, idx);
+	ret.second = path.substr(idx + 1, path.length() - idx - 1);
+	return ret;
+}
+
 std::wstring GetWideStringFromString(const std::string& str)
 {
 	// MultiByteToWideCharで使うには先にwchar_t配列を必要なサイズの確保が必要。
@@ -140,7 +155,7 @@ ID3D12Resource* CreateWhiteTexture()
 		nullptr,
 		data.data(),
 		4 * 4,
-		data.size()
+		(UINT)data.size()
 	);
 	if (FAILED(result))
 	{
@@ -432,7 +447,8 @@ int main()
 	char signature[3];
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
-	std::string strModelPath = "Model/初音ミク.pmd";
+	//std::string strModelPath = "Model/初音ミク.pmd";
+	std::string strModelPath = "Model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
@@ -544,7 +560,51 @@ int main()
 
 			if (strlen(pmdMaterials[i].texFilePath) > 0)
 			{
-				const std::string& texFilePath = GetTexturePathFromModelAndTexPath(strModelPath, pmdMaterials[i].texFilePath);
+				std::string texFileName = pmdMaterials[i].texFilePath;
+				std::string sphFileName = "";
+				std::string spaFileName = "";
+
+				if (std::count(texFileName.begin(), texFileName.end(), '*') > 0)
+				{
+					const std::pair<std::string, std::string>& namepair = SplitFileName(texFileName);
+					if (GetExtension(namepair.first) == "sph")
+					{
+						sphFileName = namepair.first;
+						texFileName = namepair.second;
+					}
+					else if (GetExtension(namepair.first) == "spa")
+					{
+						spaFileName = namepair.first;
+						texFileName = namepair.second;
+					}
+					else
+					{
+						texFileName = namepair.first;
+						if (GetExtension(namepair.second) == "sph")
+						{
+							sphFileName = namepair.second;
+						}
+						else if (GetExtension(namepair.second) == "spa")
+						{
+							spaFileName = namepair.second;
+						}
+					}
+				}
+				else
+				{
+					if (GetExtension(texFileName) == "sph")
+					{
+						sphFileName = texFileName;
+						texFileName = "";
+					}
+					else if (GetExtension(texFileName) == "spa")
+					{
+						spaFileName = texFileName;
+						texFileName = "";
+					}
+				}
+
+				const std::string& texFilePath = GetTexturePathFromModelAndTexPath(strModelPath, texFileName.c_str());
 				textureResources[i] = LoadTextureFromFile(texFilePath);
 			}
 
