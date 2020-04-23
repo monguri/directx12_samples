@@ -6,6 +6,7 @@ cbuffer cubuff0 : register(b0)
 	matrix world;
 	matrix view;
 	matrix proj;
+	float3 eye;
 }
 
 Output BasicVS(
@@ -22,5 +23,6 @@ min16uint2 weight : WEIGHT
 	output.normal = mul(world, normal);
 	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
+	output.ray = normalize(pos.xyz - eye);
 	return output;
 }

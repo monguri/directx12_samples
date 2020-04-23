@@ -504,9 +504,9 @@ int main()
 	char signature[3];
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
-	//std::string strModelPath = "Model/初音ミク.pmd";
+	std::string strModelPath = "Model/初音ミク.pmd";
 	//std::string strModelPath = "Model/初音ミクmetal.pmd";
-	std::string strModelPath = "Model/巡音ルカ.pmd";
+	//std::string strModelPath = "Model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
@@ -1047,17 +1047,18 @@ int main()
 	scissorrect.bottom = scissorrect.top + window_height;
 
 	// 定数バッファ用データ
-	struct MatricesData
+	struct SceneData
 	{
 		XMMATRIX world;
 		XMMATRIX view;
 		XMMATRIX proj;
+		XMFLOAT3 eye;
 	};
 
 	// 定数バッファ作成
 	XMMATRIX worldMat = XMMatrixRotationY(XM_PIDIV4);
-	XMFLOAT3 eye(0, 10, -15);
-	XMFLOAT3 target(0, 10, 0);
+	XMFLOAT3 eye(0, 15, -15);
+	XMFLOAT3 target(0, 15, 0);
 	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
@@ -1071,17 +1072,18 @@ int main()
 	result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(MatricesData) + 0xff) & ~0xff),
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&constBuff)
 	);
 
-	MatricesData* mapMatrix = nullptr;
-	result = constBuff->Map(0, nullptr, (void**)&mapMatrix);
-	mapMatrix->world = worldMat;
-	mapMatrix->view = viewMat;
-	mapMatrix->proj = projMat;
+	SceneData* mapScene = nullptr;
+	result = constBuff->Map(0, nullptr, (void**)&mapScene);
+	mapScene->world = worldMat;
+	mapScene->view = viewMat;
+	mapScene->proj = projMat;
+	mapScene->eye = eye;
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
@@ -1122,7 +1124,7 @@ int main()
 
 		angle += 0.005f;
 		worldMat = XMMatrixRotationY(angle);
-		mapMatrix->world = worldMat;
+		mapScene->world = worldMat;
 
 		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
