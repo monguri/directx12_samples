@@ -4,7 +4,7 @@
 #include <dxgi1_6.h>
 #include <DirectXMath.h>
 #include <vector>
-
+#include <map>
 #include <d3dcompiler.h>
 #include <DirectXTex.h>
 #include <d3dx12.h>
@@ -222,14 +222,19 @@ ID3D12Resource* CreateBlackTexture()
 	return texbuff;
 }
 
+using LoadLambda_t = std::function<HRESULT(const std::wstring& path, TexMetadata* meta, ScratchImage& img)>;
+std::map<std::string, LoadLambda_t> loadLambdaTable;
+
 ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 {
 	// WICテクスチャのロード
 	TexMetadata metadata = {};
 	ScratchImage scratchImg = {};
-	HRESULT result = LoadFromWICFile(
-		GetWideStringFromString(texPath).c_str(),
-		WIC_FLAGS_NONE,
+	const std::wstring& wtexpath = GetWideStringFromString(texPath);
+	const std::string& ext = GetExtension(texPath);
+
+	HRESULT result = loadLambdaTable[ext](
+		wtexpath,
 		&metadata,
 		scratchImg
 	);
@@ -442,6 +447,23 @@ int main()
 		_dev->CreateRenderTargetView(_backBuffers[i], &rtvDesc, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
+
+
+	loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] =
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+	};
+
+	loadLambdaTable["tga"] =
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromTGAFile(path.c_str(), meta, img);
+	};
+
+	loadLambdaTable["dds"] =
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromDDSFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+	};
+
 
 	// 深度バッファ作成
 	D3D12_RESOURCE_DESC depthResDesc = {};
