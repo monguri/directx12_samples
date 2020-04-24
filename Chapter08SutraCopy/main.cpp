@@ -222,11 +222,23 @@ ID3D12Resource* CreateBlackTexture()
 	return texbuff;
 }
 
+// ファイル拡張子ごとにロード関数を使い分けるためのテーブル
 using LoadLambda_t = std::function<HRESULT(const std::wstring& path, TexMetadata* meta, ScratchImage& img)>;
 std::map<std::string, LoadLambda_t> loadLambdaTable;
 
+// ファイルパスごとにリソースをキャッシュして使いまわすためのテーブル
+std::map<std::string, ID3D12Resource*> _resourceTable;
+
 ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 {
+	// キャッシュ済みならそれを返す
+	// イテレータの型は複雑なのでautoを使う
+	auto it = _resourceTable.find(texPath);
+	if (it != _resourceTable.end())
+	{
+		return _resourceTable[texPath];
+	}
+
 	// WICテクスチャのロード
 	TexMetadata metadata = {};
 	ScratchImage scratchImg = {};
@@ -292,6 +304,8 @@ ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 		return nullptr;
 	}
 
+	// テーブルにキャッシュ
+	_resourceTable[texPath] = texbuff;
 	return texbuff;
 }
 
