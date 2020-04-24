@@ -108,6 +108,73 @@ std::wstring GetWideStringFromString(const std::string& str)
 	return wstr;
 }
 
+ID3D12Resource* CreateGrayGradientTexture()
+{
+	// テクスチャバッファ作成
+	D3D12_HEAP_PROPERTIES texHeapProp = {};
+	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	texHeapProp.CreationNodeMask = 0;
+	texHeapProp.VisibleNodeMask = 0;
+
+	D3D12_RESOURCE_DESC texResDesc = {};
+	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texResDesc.Width = 4; // 実際は1Dテクスチャで十分だが
+	texResDesc.Height = 256; // 256段階
+	texResDesc.DepthOrArraySize = 1;
+	texResDesc.SampleDesc.Count = 1;
+	texResDesc.SampleDesc.Quality = 0;
+	texResDesc.MipLevels = 1;
+	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	ID3D12Resource* texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&texResDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&texbuff)
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	// 上が白くて下が黒いグレースケールグラデーションテクスチャの作成
+	// 4byte 4x256のテクスチャ
+	std::vector<unsigned int> data(4 * 256);
+	// グレースケール値
+	unsigned int grayscale = 0xff;
+	for (auto it = data.begin(); it != data.end(); it += 4) // インクリメントは行単位
+	{
+		// グレースケール値をRGBA4チャンネルに適用したもの
+		unsigned int grayscaleRGBA = (grayscale << 24) | (grayscale << 16) | (grayscale << 8) | grayscale;
+		// 行の4ピクセル同時に塗る
+		std::fill(it, it + 4, grayscaleRGBA);
+		// グレースケール値を下げる
+		--grayscale;
+	}
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		(UINT)(4 * sizeof(unsigned int)),
+		(UINT)(sizeof(unsigned int) * data.size())
+	);
+	if (FAILED(result))
+	{
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
 ID3D12Resource* CreateWhiteTexture()
 {
 	// テクスチャバッファ作成
@@ -635,9 +702,11 @@ int main()
 	std::vector<ID3D12Resource*> textureResources(materialNum);
 	std::vector<ID3D12Resource*> sphResources(materialNum);
 	std::vector<ID3D12Resource*> spaResources(materialNum);
+	std::vector<ID3D12Resource*> toonResources(materialNum);
 
 	ID3D12Resource* whiteTex = CreateWhiteTexture();
 	ID3D12Resource* blackTex = CreateBlackTexture();
+	ID3D12Resource* gradTex = CreateGrayGradientTexture();
 	assert(whiteTex != nullptr);
 
 	{
@@ -652,13 +721,23 @@ int main()
 			materials[i].material.specular = pmdMaterials[i].specular;
 			materials[i].material.specularity = pmdMaterials[i].specularity;
 			materials[i].material.ambient = pmdMaterials[i].ambient;
+			materials[i].additional.toonIdx = pmdMaterials[i].toonIdx;
 
 			textureResources[i] = nullptr;
 			sphResources[i] = nullptr;
 			spaResources[i] = nullptr;
+			toonResources[i] = nullptr;
 
 			if (strlen(pmdMaterials[i].texFilePath) > 0)
 			{
+				// トゥーンシェーディング用のCLUTテクスチャリソースのロード
+				std::string toonFilePath = "toon/";
+				char toonFileName[16];
+				sprintf_s(toonFileName, 16, "toon%02d.bmp", pmdMaterials[i].toonIdx + 1);
+				toonFilePath += toonFileName;
+				toonResources[i] = LoadTextureFromFile(toonFilePath);
+
+				// 通常テクスチャ、sph、spaのリソースのロード
 				std::string texFileName = pmdMaterials[i].texFilePath;
 				std::string sphFileName = "";
 				std::string spaFileName = "";
@@ -720,6 +799,11 @@ int main()
 					const std::string& spaFilePath = GetTexturePathFromModelAndTexPath(strModelPath, spaFileName.c_str());
 					spaResources[i] = LoadTextureFromFile(spaFilePath);
 				}
+			}
+
+			if (toonResources[i] == nullptr)
+			{
+				toonResources[i] = gradTex;
 			}
 
 			if (textureResources[i] == nullptr)
@@ -791,7 +875,7 @@ int main()
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
 	materialDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	materialDescHeapDesc.NodeMask = 0;
-	materialDescHeapDesc.NumDescriptors = materialNum * 4; // MaterialForHlslのCBVと通常テクスチャとsphとspaのSRVの4つずつ
+	materialDescHeapDesc.NumDescriptors = materialNum * 5; // MaterialForHlslのCBVと通常テクスチャとsphとspaとCLUTのSRVの5つずつ
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ID3D12DescriptorHeap* materialDescHeap = nullptr;
@@ -841,6 +925,15 @@ int main()
 		srvDesc.Format = spaResources[i]->GetDesc().Format;
 		_dev->CreateShaderResourceView(
 			spaResources[i],
+			&srvDesc,
+			matDescHeapH
+		);
+
+		matDescHeapH.ptr += incSize;
+
+		srvDesc.Format = toonResources[i]->GetDesc().Format;
+		_dev->CreateShaderResourceView(
+			toonResources[i],
 			&srvDesc,
 			matDescHeapH
 		);
@@ -982,7 +1075,7 @@ int main()
 	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	descTblRange[1].BaseShaderRegister = 1;
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	descTblRange[2].NumDescriptors = 3; // 通常テクスチャとsphとspa
+	descTblRange[2].NumDescriptors = 4; // 通常テクスチャとsphとspatとCLUT
 	descTblRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descTblRange[2].BaseShaderRegister = 0;
 	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -1207,7 +1300,7 @@ int main()
 		// マテリアルセクションごとにマテリアルを切り替えて描画
 		D3D12_GPU_DESCRIPTOR_HANDLE materialH = materialDescHeap->GetGPUDescriptorHandleForHeapStart();
 		unsigned int idxOffset = 0;
-		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 4; // CBVと通常テクスチャとsphとspaのSRV
+		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5; // CBVと通常テクスチャとsphとspaとCLUTのSRV
 
 		for (const Material& m : materials)
 		{
