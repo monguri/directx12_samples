@@ -728,15 +728,15 @@ int main()
 			spaResources[i] = nullptr;
 			toonResources[i] = nullptr;
 
+			// トゥーンシェーディング用のCLUTテクスチャリソースのロード
+			std::string toonFilePath = "toon/";
+			char toonFileName[16];
+			sprintf_s(toonFileName, 16, "toon%02d.bmp", pmdMaterials[i].toonIdx + 1); // この足し算だと255+1は256で扱われるが、現状toon00.bmpはないためこのままにしておく
+			toonFilePath += toonFileName;
+			toonResources[i] = LoadTextureFromFile(toonFilePath);
+
 			if (strlen(pmdMaterials[i].texFilePath) > 0)
 			{
-				// トゥーンシェーディング用のCLUTテクスチャリソースのロード
-				std::string toonFilePath = "toon/";
-				char toonFileName[16];
-				sprintf_s(toonFileName, 16, "toon%02d.bmp", pmdMaterials[i].toonIdx + 1);
-				toonFilePath += toonFileName;
-				toonResources[i] = LoadTextureFromFile(toonFilePath);
-
 				// 通常テクスチャ、sph、spaのリソースのロード
 				std::string texFileName = pmdMaterials[i].texFilePath;
 				std::string sphFileName = "";
