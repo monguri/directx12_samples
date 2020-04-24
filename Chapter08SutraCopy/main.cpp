@@ -526,9 +526,9 @@ int main()
 	char signature[3];
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
-	//std::string strModelPath = "Model/初音ミク.pmd";
-	//std::string strModelPath = "Model/初音ミクmetal.pmd";
-	std::string strModelPath = "Model/巡音ルカ.pmd";
+	//std::string strModelPath = "model/初音ミク.pmd";
+	//std::string strModelPath = "model/初音ミクmetal.pmd";
+	std::string strModelPath = "model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
@@ -1078,13 +1078,13 @@ int main()
 	};
 
 	// 定数バッファ作成
-	XMMATRIX worldMat = XMMatrixRotationY(XM_PIDIV4);
+	XMMATRIX worldMat = XMMatrixIdentity();
 	XMFLOAT3 eye(0, 15, -15);
 	XMFLOAT3 target(0, 15, 0);
 	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
-		XM_PIDIV2,
+		XM_PIDIV4,
 		(float)window_width / (float)window_height,
 		1.0f,
 		100.0f
