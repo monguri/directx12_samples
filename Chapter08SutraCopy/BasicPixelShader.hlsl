@@ -17,7 +17,7 @@ float4 BasicPS(Output input) : SV_Target
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
-	float toonDif = toon.Sample(smp, float2(0.0f, 1.0f - diffuseB));
+	float4 toonDif = toon.Sample(smp, float2(0.0f, 1.0f - diffuseB));
 
 	float3 refLight = normalize(reflect(light, input.normal.xyz));
 	float specularB = pow(saturate(dot(refLight, -input.ray)), specular.a);
