@@ -1,4 +1,3 @@
-#include <Windows.h>
 #include <tchar.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -13,6 +12,8 @@
 #ifdef _DEBUG
 #include <iostream>
 #endif
+
+#include "Application.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -358,8 +359,22 @@ void EnableDebugLayer()
 	}
 }
 
+#ifdef _DEBUG
 int main()
+#else
+#include <Windows.h>
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+#endif
 {
+	Application& app = Application::Instance();
+	if (!app.Init())
+	{
+		return -1;
+	}
+
+	app.Run();
+	app.Terminate();
+
 	DebugOutputFormatString("Show window test.");
 
 	// ウィンドウの生成
