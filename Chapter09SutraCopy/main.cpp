@@ -111,30 +111,22 @@ std::wstring GetWideStringFromString(const std::string& str)
 ID3D12Resource* CreateGrayGradientTexture()
 {
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-	texHeapProp.CreationNodeMask = 0;
-	texHeapProp.VisibleNodeMask = 0;
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
 
-	D3D12_RESOURCE_DESC texResDesc = {};
-	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	texResDesc.Width = 4; // 実際は1Dテクスチャで十分だが
-	texResDesc.Height = 256; // 256段階
-	texResDesc.DepthOrArraySize = 1;
-	texResDesc.SampleDesc.Count = 1;
-	texResDesc.SampleDesc.Quality = 0;
-	texResDesc.MipLevels = 1;
-	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		256
+	);
 
 	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&texResDesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
@@ -178,30 +170,22 @@ ID3D12Resource* CreateGrayGradientTexture()
 ID3D12Resource* CreateWhiteTexture()
 {
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-	texHeapProp.CreationNodeMask = 0;
-	texHeapProp.VisibleNodeMask = 0;
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
 
-	D3D12_RESOURCE_DESC texResDesc = {};
-	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	texResDesc.Width = 4;
-	texResDesc.Height = 4;
-	texResDesc.DepthOrArraySize = 1;
-	texResDesc.SampleDesc.Count = 1;
-	texResDesc.SampleDesc.Quality = 0;
-	texResDesc.MipLevels = 1;
-	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		4
+	);
 
 	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&texResDesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
@@ -235,30 +219,22 @@ ID3D12Resource* CreateWhiteTexture()
 ID3D12Resource* CreateBlackTexture()
 {
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-	texHeapProp.CreationNodeMask = 0;
-	texHeapProp.VisibleNodeMask = 0;
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
 
-	D3D12_RESOURCE_DESC texResDesc = {};
-	texResDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	texResDesc.Width = 4;
-	texResDesc.Height = 4;
-	texResDesc.DepthOrArraySize = 1;
-	texResDesc.SampleDesc.Count = 1;
-	texResDesc.SampleDesc.Quality = 0;
-	texResDesc.MipLevels = 1;
-	texResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		4
+	);
 
 	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&texResDesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
@@ -325,30 +301,24 @@ ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 	const Image* img = scratchImg.GetImage(0, 0, 0);
 
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = {};
-	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-	texHeapProp.CreationNodeMask = 0;
-	texHeapProp.VisibleNodeMask = 0;
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
 
-	D3D12_RESOURCE_DESC texResDesc = {};
-	texResDesc.Format = metadata.format;
-	texResDesc.Width = (UINT)metadata.width;
-	texResDesc.Height = (UINT)metadata.height;
-	texResDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
-	texResDesc.SampleDesc.Count = 1;
-	texResDesc.SampleDesc.Quality = 0;
-	texResDesc.MipLevels = (UINT16)metadata.mipLevels;
-	texResDesc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metadata.dimension);
-	texResDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texResDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		(UINT)metadata.width,
+		(UINT)metadata.height,
+		(UINT16)metadata.arraySize,
+		(UINT16)metadata.mipLevels
+	);
 
 	ID3D12Resource* texbuff = nullptr;
 	result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&texResDesc,
+		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&texbuff)
@@ -545,21 +515,21 @@ int main()
 		return LoadFromDDSFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
 	};
 
-
 	// 深度バッファ作成
-	D3D12_RESOURCE_DESC depthResDesc = {};
-	depthResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthResDesc.Width = window_width;
-	depthResDesc.Height = window_height;
-	depthResDesc.DepthOrArraySize = 1;
-	depthResDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	depthResDesc.SampleDesc.Count = 1;
-	depthResDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	D3D12_RESOURCE_DESC depthResDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_D32_FLOAT,
+		window_width,
+		window_height,
+		1,
+		1,
+		1,
+		0,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+	);
 
-	D3D12_HEAP_PROPERTIES depthHeapProp = {};
-	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
-	depthHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	depthHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	D3D12_HEAP_PROPERTIES depthHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_HEAP_TYPE_DEFAULT
+	);
 
 	D3D12_CLEAR_VALUE depthClearValue = {};
 	depthClearValue.DepthStencil.Depth = 1.0f;
