@@ -1036,56 +1036,49 @@ int main()
 		edgeflgInputLayout,
 	};
 
-	D3D12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
-	descTblRange[0].NumDescriptors = 1;
-	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	descTblRange[0].BaseShaderRegister = 0;
-	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	descTblRange[1].NumDescriptors = 1;
-	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	descTblRange[1].BaseShaderRegister = 1;
-	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	descTblRange[2].NumDescriptors = 4; // 通常テクスチャとsphとspatとCLUT
-	descTblRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descTblRange[2].BaseShaderRegister = 0;
-	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	CD3DX12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
+	// VS用の行列
+	descTblRange[0].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+		1,
+		0
+	);
+	// PS用のMaterialData
+	descTblRange[1].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+		1,
+		1
+	);
+	// PS用の通常テクスチャとsphとspatとCLUT
+	descTblRange[2].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+		4, // 通常テクスチャとsphとspatとCLUT
+		0
+	);
 
-	D3D12_ROOT_PARAMETER rootparam[2] = {};
-	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];
-	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
-	rootparam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];
-	rootparam[1].DescriptorTable.NumDescriptorRanges = 2;
+	CD3DX12_ROOT_PARAMETER rootParams[2] = {};
+	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]);
+	rootParams[1].InitAsDescriptorTable(2, &descTblRange[1]);
 
 	// サンプラ用のルートシグネチャ設定
-	D3D12_STATIC_SAMPLER_DESC samplerDesc[2] = {};
-	samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc[0].MaxLOD = D3D12_FLOAT32_MAX;
-	samplerDesc[0].MinLOD = 0.0f;
-	samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	samplerDesc[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-	samplerDesc[0].ShaderRegister = 0;
-	// 一個目のサンプラと違う部分のみ設定
-	samplerDesc[1] = samplerDesc[0];
-	samplerDesc[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	samplerDesc[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	samplerDesc[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	samplerDesc[1].ShaderRegister = 1;
+	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
+	samplerDescs[0].Init(0);
+	samplerDescs[1].Init(
+		1,
+		D3D12_FILTER_ANISOTROPIC,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
+	);
 
 	// ルートシグネチャ作成
-	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rootSignatureDesc.pParameters = rootparam;
-	rootSignatureDesc.NumParameters = 2;
-	rootSignatureDesc.pStaticSamplers = samplerDesc;
-	rootSignatureDesc.NumStaticSamplers = 2;
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+	rootSignatureDesc.Init(
+		2,
+		rootParams,
+		2,
+		samplerDescs,
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+	);
 
 	ID3DBlob* rootSigBlob = nullptr;
 	result = D3D12SerializeRootSignature(
