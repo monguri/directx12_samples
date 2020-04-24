@@ -607,9 +607,9 @@ int main()
 	char signature[3];
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
-	//std::string strModelPath = "model/初音ミク.pmd";
+	std::string strModelPath = "model/初音ミク.pmd";
 	//std::string strModelPath = "model/初音ミクmetal.pmd";
-	std::string strModelPath = "model/巡音ルカ.pmd";
+	//std::string strModelPath = "model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
