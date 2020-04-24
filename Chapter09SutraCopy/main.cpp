@@ -1258,7 +1258,7 @@ int main()
 			break;
 		}
 
-		//angle += 0.005f;
+		angle += 0.005f;
 		worldMat = XMMatrixRotationY(angle);
 		mapScene->world = worldMat;
 
