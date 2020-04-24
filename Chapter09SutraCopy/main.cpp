@@ -219,7 +219,7 @@ ID3D12Resource* CreateWhiteTexture()
 ID3D12Resource* CreateBlackTexture()
 {
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+	CD3DX12_HEAP_PROPERTIES texHeapProp(
 		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
 		D3D12_MEMORY_POOL_L0
 	);
@@ -301,7 +301,7 @@ ID3D12Resource* LoadTextureFromFile(const std::string& texPath)
 	const Image* img = scratchImg.GetImage(0, 0, 0);
 
 	// テクスチャバッファ作成
-	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+	CD3DX12_HEAP_PROPERTIES texHeapProp(
 		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
 		D3D12_MEMORY_POOL_L0
 	);
@@ -484,7 +484,7 @@ int main()
 	ID3D12DescriptorHeap* rtvHeaps = nullptr;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeaps));
 
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(rtvHeaps->GetCPUDescriptorHandleForHeapStart());
 
 	// SRGBテクスチャ対応
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -527,13 +527,9 @@ int main()
 		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 	);
 
-	D3D12_HEAP_PROPERTIES depthHeapProp = CD3DX12_HEAP_PROPERTIES(
-		D3D12_HEAP_TYPE_DEFAULT
-	);
+	CD3DX12_HEAP_PROPERTIES depthHeapProp(D3D12_HEAP_TYPE_DEFAULT);
 
-	D3D12_CLEAR_VALUE depthClearValue = {};
-	depthClearValue.DepthStencil.Depth = 1.0f;
-	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	CD3DX12_CLEAR_VALUE depthClearValue(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
 	
 	ID3D12Resource* depthBuffer = nullptr;
 	result = _dev->CreateCommittedResource(
@@ -1123,19 +1119,8 @@ int main()
 	ID3D12PipelineState* _pipelinestate = nullptr;
 	result = _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(&_pipelinestate));
 
-	D3D12_VIEWPORT viewport = {};
-	viewport.Width = window_width;
-	viewport.Height = window_height;
-	viewport.TopLeftX = 0.0f;
-	viewport.TopLeftY = 0.0f;
-	viewport.MaxDepth = 1.0f;
-	viewport.MinDepth = 0.0f;
-
-	D3D12_RECT scissorrect = {};
-	scissorrect.top = 0;
-	scissorrect.left = 0;
-	scissorrect.right = scissorrect.left + window_width;
-	scissorrect.bottom = scissorrect.top + window_height;
+	CD3DX12_VIEWPORT viewport(_backBuffers[0]);
+	CD3DX12_RECT scissorrect(0, 0, window_width, window_height);
 
 	// 定数バッファ用データ
 	struct SceneData
@@ -1185,7 +1170,7 @@ int main()
 
 	ID3D12DescriptorHeap* basicDescHeap = nullptr;
 	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(&basicDescHeap));
-	D3D12_CPU_DESCRIPTOR_HANDLE basicHeapHandle = basicDescHeap->GetCPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(basicDescHeap->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = constBuff->GetGPUVirtualAddress();
@@ -1232,10 +1217,10 @@ int main()
 		_cmdList->SetPipelineState(_pipelinestate);
 
 		// レンダーターゲットを指定する
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvH(rtvHeaps->GetCPUDescriptorHandleForHeapStart());
 		rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dsvH = dsvHeap->GetCPUDescriptorHandleForHeapStart();
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(dsvHeap->GetCPUDescriptorHandleForHeapStart());
 		_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
 
 		// レンダーターゲットをクリアする
@@ -1260,7 +1245,7 @@ int main()
 		_cmdList->SetDescriptorHeaps(1, &materialDescHeap);
 
 		// マテリアルセクションごとにマテリアルを切り替えて描画
-		D3D12_GPU_DESCRIPTOR_HANDLE materialH = materialDescHeap->GetGPUDescriptorHandleForHeapStart();
+		CD3DX12_GPU_DESCRIPTOR_HANDLE materialH(materialDescHeap->GetGPUDescriptorHandleForHeapStart());
 		unsigned int idxOffset = 0;
 		UINT cbvsrvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5; // CBVと通常テクスチャとsphとspaとCLUTのSRV
 
