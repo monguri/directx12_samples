@@ -4,6 +4,7 @@ Texture2D<float4> sph : register(t1);
 Texture2D<float4> spa : register(t2);
 Texture2D<float4> toon : register(t3); // CLUT
 SamplerState smp : register(s0);
+SamplerState smpToon : register(s1);
 
 cbuffer Material : register(b1)
 {
@@ -17,7 +18,7 @@ float4 BasicPS(Output input) : SV_Target
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
-	float4 toonDif = toon.Sample(smp, float2(0.0f, 1.0f - diffuseB));
+	float4 toonDif = toon.Sample(smpToon, float2(0.0f, 1.0f - diffuseB));
 
 	float3 refLight = normalize(reflect(light, input.normal.xyz));
 	float specularB = pow(saturate(dot(refLight, -input.ray)), specular.a);
