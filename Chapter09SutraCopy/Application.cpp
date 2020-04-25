@@ -1,8 +1,16 @@
 #include "Application.h"
+#include "Dx12Wrapper.h"
+#include "PMDRenderer.h"
+#include "PMDActor.h"
 
 #ifdef _DEBUG
 #include <iostream>
 #endif
+#include <tchar.h>
+#include <dxgi1_6.h>
+#include <d3dcompiler.h>
+#include <DirectXTex.h>
+#include <d3dx12.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")

@@ -1,13 +1,8 @@
 #pragma once
-#include <tchar.h>
 #include <d3d12.h>
-#include <dxgi1_6.h>
 #include <DirectXMath.h>
 #include <vector>
 #include <map>
-#include <d3dcompiler.h>
-#include <DirectXTex.h>
-#include <d3dx12.h>
 #include <wrl.h>
 
 class Application
@@ -94,7 +89,7 @@ private:
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
 	HRESULT CreateSwapChain();
-	HRESULT CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
+	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreateDepthStencil();
 	HRESULT LoadPMDFileAndCreateBuffers(const std::string& path);
 	HRESULT CreateRootSignature();
