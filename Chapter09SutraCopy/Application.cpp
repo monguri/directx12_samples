@@ -1174,14 +1174,10 @@ void Application::Run()
 		UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 		// Present状態からレンダーターゲット状態にする
-		D3D12_RESOURCE_BARRIER BarrierDesc = {};
-		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		BarrierDesc.Transition.pResource = _backBuffers[bbIdx].Get();
-		BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		_cmdList->ResourceBarrier(1, &BarrierDesc);
+		_cmdList->ResourceBarrier(
+			1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
+		);
 
 		_cmdList->SetPipelineState(_pipelinestate.Get());
 
@@ -1228,9 +1224,10 @@ void Application::Run()
 		}
 
 		// レンダーターゲット状態からPresent状態にする
-		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-		_cmdList->ResourceBarrier(1, &BarrierDesc);
+		_cmdList->ResourceBarrier(
+			1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
+		);
 
 		// コマンドリストのクローズ
 		_cmdList->Close();
