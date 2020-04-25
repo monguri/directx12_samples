@@ -92,5 +92,7 @@ private:
 
 	void CreateGameWindow();
 	HRESULT InitializeDXGIDevice();
+	HRESULT InitializeCommand();
+
 };
 
