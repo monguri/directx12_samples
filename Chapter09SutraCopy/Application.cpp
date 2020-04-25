@@ -436,66 +436,7 @@ bool Application::Init()
 	//std::string strModelPath = "model/巡音ルカ.pmd";
 	result = LoadPMDFileToCreateBuffer(strModelPath);
 
-	CD3DX12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
-	// VS用の行列
-	descTblRange[0].Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-		1,
-		0
-	);
-	// PS用のMaterialData
-	descTblRange[1].Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-		1,
-		1
-	);
-	// PS用の通常テクスチャとsphとspatとCLUT
-	descTblRange[2].Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-		4, // 通常テクスチャとsphとspatとCLUT
-		0
-	);
-
-	CD3DX12_ROOT_PARAMETER rootParams[2] = {};
-	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]);
-	rootParams[1].InitAsDescriptorTable(2, &descTblRange[1]);
-
-	// サンプラ用のルートシグネチャ設定
-	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
-	samplerDescs[0].Init(0);
-	samplerDescs[1].Init(
-		1,
-		D3D12_FILTER_ANISOTROPIC,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
-	);
-
-	// ルートシグネチャ作成
-	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.Init(
-		2,
-		rootParams,
-		2,
-		samplerDescs,
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-	);
-
-	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
-	ComPtr<ID3DBlob> rootSigBlob = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-	result = D3D12SerializeRootSignature(
-		&rootSignatureDesc,
-		D3D_ROOT_SIGNATURE_VERSION_1_0,
-		&rootSigBlob,
-		&errorBlob
-	);
-
-	result = _dev->CreateRootSignature(
-		0,
-		rootSigBlob->GetBufferPointer(),
-		rootSigBlob->GetBufferSize(),
-		IID_PPV_ARGS(_rootsignature.ReleaseAndGetAddressOf())
-	);
+	result = CreateRootSignature();
 
 	result = CreateGraphicsPipeline();
 
@@ -1209,6 +1150,75 @@ HRESULT Application::LoadPMDFileToCreateBuffer(const std::string& path)
 	}
 
 	return result;
+}
+
+HRESULT Application::CreateRootSignature()
+{
+	CD3DX12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
+	// VS用の行列
+	descTblRange[0].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+		1,
+		0
+	);
+	// PS用のMaterialData
+	descTblRange[1].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+		1,
+		1
+	);
+	// PS用の通常テクスチャとsphとspatとCLUT
+	descTblRange[2].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+		4, // 通常テクスチャとsphとspatとCLUT
+		0
+	);
+
+	CD3DX12_ROOT_PARAMETER rootParams[2] = {};
+	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]);
+	rootParams[1].InitAsDescriptorTable(2, &descTblRange[1]);
+
+	// サンプラ用のルートシグネチャ設定
+	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
+	samplerDescs[0].Init(0);
+	samplerDescs[1].Init(
+		1,
+		D3D12_FILTER_ANISOTROPIC,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
+	);
+
+	// ルートシグネチャ作成
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+	rootSignatureDesc.Init(
+		2,
+		rootParams,
+		2,
+		samplerDescs,
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+	);
+
+	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
+	ComPtr<ID3DBlob> rootSigBlob = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+	HRESULT result = D3D12SerializeRootSignature(
+		&rootSignatureDesc,
+		D3D_ROOT_SIGNATURE_VERSION_1_0,
+		&rootSigBlob,
+		&errorBlob
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return _dev->CreateRootSignature(
+		0,
+		rootSigBlob->GetBufferPointer(),
+		rootSigBlob->GetBufferSize(),
+		IID_PPV_ARGS(_rootsignature.ReleaseAndGetAddressOf())
+	);
 }
 
 HRESULT Application::CreateGraphicsPipeline()
