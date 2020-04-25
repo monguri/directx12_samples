@@ -12,12 +12,6 @@
 
 class Application
 {
-private:
-	Application();
-	~Application();
-	Application(const Application&) = delete;
-	void operator=(const Application&) = delete;
-
 public:
 	static Application& Instance();
 
@@ -89,5 +83,13 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _rtvHeaps = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _dsvHeap = nullptr;
+
+private:
+	Application();
+	~Application();
+	Application(const Application&) = delete;
+	void operator=(const Application&) = delete;
+
+	void CreateGameWindow();
 };
 

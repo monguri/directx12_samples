@@ -375,30 +375,7 @@ bool Application::Init()
 	HRESULT result = CoInitializeEx(0, COINIT_MULTITHREADED);
 	DebugOutputFormatString("Show window test.");
 
-	// ウィンドウの生成
-	_windowClass.cbSize = sizeof(WNDCLASSEX);
-	_windowClass.lpfnWndProc = (WNDPROC)WindowProcedure;
-	_windowClass.lpszClassName = _T("DX12Sample");
-	_windowClass.hInstance = GetModuleHandle(nullptr);
-
-	RegisterClassEx(&_windowClass);
-
-	RECT wrc = {0, 0, window_width, window_height};
-	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
-
-	_hwnd = CreateWindow(
-		_windowClass.lpszClassName,
-		_T("DX12サンプル"),
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		wrc.right - wrc.left,
-		wrc.bottom - wrc.top,
-		nullptr,
-		nullptr,
-		_windowClass.hInstance,
-		nullptr
-	);
+	CreateGameWindow();
 
 #ifdef _DEBUG
 	EnableDebugLayer();
@@ -1257,5 +1234,33 @@ void Application::Run()
 void Application::Terminate()
 {
 	UnregisterClass(_windowClass.lpszClassName, _windowClass.hInstance);
+}
+
+void Application::CreateGameWindow()
+{
+	// ウィンドウの生成
+	_windowClass.cbSize = sizeof(WNDCLASSEX);
+	_windowClass.lpfnWndProc = (WNDPROC)WindowProcedure;
+	_windowClass.lpszClassName = _T("DX12Sample");
+	_windowClass.hInstance = GetModuleHandle(nullptr);
+
+	RegisterClassEx(&_windowClass);
+
+	RECT wrc = {0, 0, window_width, window_height};
+	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
+
+	_hwnd = CreateWindow(
+		_windowClass.lpszClassName,
+		_T("DX12サンプル"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		wrc.right - wrc.left,
+		wrc.bottom - wrc.top,
+		nullptr,
+		nullptr,
+		_windowClass.hInstance,
+		nullptr
+	);
 }
 
