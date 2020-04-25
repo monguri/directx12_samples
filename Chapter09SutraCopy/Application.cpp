@@ -440,53 +440,7 @@ bool Application::Init()
 
 	result = CreateGraphicsPipeline();
 
-	// 定数バッファ用データ
-	// 定数バッファ作成
-	_worldMat = XMMatrixIdentity();
-	XMFLOAT3 eye(0, 15, -15);
-	XMFLOAT3 target(0, 15, 0);
-	XMFLOAT3 up(0, 1, 0);
-	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,
-		(float)window_width / (float)window_height,
-		1.0f,
-		100.0f
-	);
-
-	result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(_constBuff.ReleaseAndGetAddressOf())
-	);
-
-	result = _constBuff->Map(0, nullptr, (void**)&_mapScene);
-	_mapScene->world = _worldMat;
-	_mapScene->view = viewMat;
-	_mapScene->proj = projMat;
-	_mapScene->eye = eye;
-
-	// ディスクリプタヒープとCBV作成
-	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
-	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	basicHeapDesc.NodeMask = 0;
-	basicHeapDesc.NumDescriptors = 1;
-	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_basicDescHeap.ReleaseAndGetAddressOf()));
-	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_basicDescHeap->GetCPUDescriptorHandleForHeapStart());
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _constBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_constBuff->GetDesc().Width;
-
-	_dev->CreateConstantBufferView(
-		&cbvDesc,
-		basicHeapHandle
-	);
+	result = CreateCameraConstantBuffer();
 	return true;
 }
 
@@ -1375,5 +1329,74 @@ HRESULT Application::CreateGraphicsPipeline()
 	gpipeline.SampleDesc.Quality = 0;
 
 	return _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
+}
+
+HRESULT Application::CreateCameraConstantBuffer()
+{
+	// 定数バッファ用データ
+	// 定数バッファ作成
+	_worldMat = XMMatrixIdentity();
+	XMFLOAT3 eye(0, 15, -15);
+	XMFLOAT3 target(0, 15, 0);
+	XMFLOAT3 up(0, 1, 0);
+	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
+		XM_PIDIV4,
+		(float)window_width / (float)window_height,
+		1.0f,
+		100.0f
+	);
+
+	HRESULT result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_constBuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	result = _constBuff->Map(0, nullptr, (void**)&_mapScene);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+	_mapScene->world = _worldMat;
+	_mapScene->view = viewMat;
+	_mapScene->proj = projMat;
+	_mapScene->eye = eye;
+
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
+	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	basicHeapDesc.NodeMask = 0;
+	basicHeapDesc.NumDescriptors = 1;
+	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_basicDescHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_basicDescHeap->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _constBuff->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_constBuff->GetDesc().Width;
+
+	_dev->CreateConstantBufferView(
+		&cbvDesc,
+		basicHeapHandle
+	);
+
+	return result;
 }
 

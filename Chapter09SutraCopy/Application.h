@@ -99,5 +99,6 @@ private:
 	HRESULT LoadPMDFileToCreateBuffer(const std::string& path);
 	HRESULT CreateRootSignature();
 	HRESULT CreateGraphicsPipeline();
+	HRESULT CreateCameraConstantBuffer();
 };
 
