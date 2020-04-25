@@ -96,7 +96,7 @@ private:
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreateDepthStencil();
-	HRESULT LoadPMDFileToCreateBuffer(const std::string& path);
+	HRESULT LoadPMDFileAndCreateBuffers(const std::string& path);
 	HRESULT CreateRootSignature();
 	HRESULT CreateGraphicsPipeline();
 	HRESULT CreateCameraConstantBuffer();

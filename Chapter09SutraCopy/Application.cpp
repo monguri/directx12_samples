@@ -125,6 +125,7 @@ ComPtr<ID3D12Resource> CreateGrayGradientTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -153,6 +154,7 @@ ComPtr<ID3D12Resource> CreateGrayGradientTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -184,6 +186,7 @@ ComPtr<ID3D12Resource> CreateWhiteTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -202,6 +205,7 @@ ComPtr<ID3D12Resource> CreateWhiteTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -233,6 +237,7 @@ ComPtr<ID3D12Resource> CreateBlackTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -251,6 +256,7 @@ ComPtr<ID3D12Resource> CreateBlackTexture()
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -287,6 +293,7 @@ ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath)
 	);
 	if (FAILED(result))
 	{
+		// 指定されたパスにファイルが存在しないケースは想定しているのでassertはしない
 		return nullptr;
 	}
 
@@ -317,6 +324,7 @@ ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath)
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -330,6 +338,7 @@ ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath)
 	);
 	if (FAILED(result))
 	{
+		assert(false);
 		return nullptr;
 	}
 
@@ -407,8 +416,18 @@ bool Application::Init()
 		nullptr,
 		(IDXGISwapChain1**)_swapchain.ReleaseAndGetAddressOf()
 	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	result = CreateFinalRenderTarget(swapchainDesc);
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	// テクスチャローダー関数テーブル作成
 	loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] =
@@ -427,20 +446,51 @@ bool Application::Init()
 	};
 
 	result = CreateDepthStencil();
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	// フェンスの生成
 	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	std::string strModelPath = "model/初音ミク.pmd";
 	//std::string strModelPath = "model/初音ミクmetal.pmd";
 	//std::string strModelPath = "model/巡音ルカ.pmd";
-	result = LoadPMDFileToCreateBuffer(strModelPath);
+	result = LoadPMDFileAndCreateBuffers(strModelPath);
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	result = CreateRootSignature();
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	result = CreateGraphicsPipeline();
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
 
 	result = CreateCameraConstantBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return false;
+	}
+
 	return true;
 }
 
@@ -767,7 +817,7 @@ HRESULT Application::CreateDepthStencil()
 	return result;
 }
 
-HRESULT Application::LoadPMDFileToCreateBuffer(const std::string& path)
+HRESULT Application::LoadPMDFileAndCreateBuffers(const std::string& path)
 {
 	// PMDヘッダ格納データ
 	struct PMDHeader
