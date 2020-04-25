@@ -631,7 +631,7 @@ HRESULT Application::CreateDXGIDevice()
 	D3D_FEATURE_LEVEL featureLevel;
 	for (D3D_FEATURE_LEVEL level : levels)
 	{
-		if (D3D12CreateDevice(nvidiaAdapter.Get(), level, IID_PPV_ARGS(_dev.ReleaseAndGetAddressOf())) == S_OK)
+		if (SUCCEEDED(D3D12CreateDevice(nvidiaAdapter.Get(), level, IID_PPV_ARGS(_dev.ReleaseAndGetAddressOf()))))
 		{
 			featureLevel = level;
 			result = S_OK;
@@ -665,7 +665,14 @@ HRESULT Application::CreateCommand()
 	cmdQueueDesc.NodeMask = 0;
 	cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	return _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(_cmdQueue.ReleaseAndGetAddressOf()));
+	result = _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(_cmdQueue.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return result;
 }
 
 HRESULT Application::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc)
@@ -1167,12 +1174,19 @@ HRESULT Application::CreateRootSignature()
 		return result;
 	}
 
-	return _dev->CreateRootSignature(
+	result = _dev->CreateRootSignature(
 		0,
 		rootSigBlob->GetBufferPointer(),
 		rootSigBlob->GetBufferSize(),
 		IID_PPV_ARGS(_rootsignature.ReleaseAndGetAddressOf())
 	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return result;
 }
 
 HRESULT Application::CreateGraphicsPipeline()
@@ -1328,7 +1342,14 @@ HRESULT Application::CreateGraphicsPipeline()
 	gpipeline.SampleDesc.Count = 1;
 	gpipeline.SampleDesc.Quality = 0;
 
-	return _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
+	result = _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return result;
 }
 
 HRESULT Application::CreateCameraConstantBuffer()
