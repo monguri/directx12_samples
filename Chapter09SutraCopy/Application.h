@@ -91,8 +91,9 @@ private:
 	void operator=(const Application&) = delete;
 
 	void CreateGameWindow();
-	HRESULT InitializeDXGIDevice();
-	HRESULT InitializeCommand();
-
+	HRESULT CreateDXGIDevice();
+	HRESULT CreateCommand();
+	HRESULT CreateSwapChain();
+	HRESULT CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 };
 

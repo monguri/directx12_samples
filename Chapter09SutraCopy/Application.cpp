@@ -381,11 +381,10 @@ bool Application::Init()
 	EnableDebugLayer();
 #endif // _DEBUG
 
-	result = InitializeDXGIDevice();
-	result = InitializeCommand();
+	result = CreateDXGIDevice();
+	result = CreateCommand();
 
-
-	// スワップチェインの生成
+	// スワップチェインの生成。一関数しか呼ばないので関数化しない
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = window_width;
 	swapchainDesc.Height = window_height;
@@ -409,29 +408,7 @@ bool Application::Init()
 		(IDXGISwapChain1**)_swapchain.ReleaseAndGetAddressOf()
 	);
 
-	// ディスクリプタヒープの生成と、2枚のバックバッファ用のレンダーターゲットビューの生成
-	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	heapDesc.NodeMask = 0;
-	heapDesc.NumDescriptors = 2;
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_rtvHeaps.ReleaseAndGetAddressOf()));
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(_rtvHeaps->GetCPUDescriptorHandleForHeapStart());
-
-	// SRGBテクスチャ対応
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-	_backBuffers.resize(swapchainDesc.BufferCount);
-	for (UINT i = 0; i < swapchainDesc.BufferCount; ++i)
-	{
-		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(_backBuffers[i].ReleaseAndGetAddressOf()));
-		_dev->CreateRenderTargetView(_backBuffers[i].Get(), &rtvDesc, handle);
-		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	}
+	result = CreateFinalRenderTarget(swapchainDesc);
 
 
 	loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] =
@@ -1208,7 +1185,7 @@ void Application::CreateGameWindow()
 	);
 }
 
-HRESULT Application::InitializeDXGIDevice()
+HRESULT Application::CreateDXGIDevice()
 {
 	// DXGIFactoryの生成
 	HRESULT result = CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(_dxgiFactory.ReleaseAndGetAddressOf()));
@@ -1263,7 +1240,7 @@ HRESULT Application::InitializeDXGIDevice()
 	return result;
 }
 
-HRESULT Application::InitializeCommand()
+HRESULT Application::CreateCommand()
 {
 	// コマンドアロケータとコマンドリストの生成
 	HRESULT result = _dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(_cmdAllocator.ReleaseAndGetAddressOf()));
@@ -1291,6 +1268,46 @@ HRESULT Application::InitializeCommand()
 	{
 		assert(false);
 		return result;
+	}
+
+	return result;
+}
+
+HRESULT Application::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc)
+{
+	// ディスクリプタヒープの生成と、2枚のバックバッファ用のレンダーターゲットビューの生成
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	heapDesc.NodeMask = 0;
+	heapDesc.NumDescriptors = 2;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_rtvHeaps.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(_rtvHeaps->GetCPUDescriptorHandleForHeapStart());
+
+	// SRGBテクスチャ対応
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	_backBuffers.resize(swapchainDesc.BufferCount);
+	for (UINT i = 0; i < swapchainDesc.BufferCount; ++i)
+	{
+		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(_backBuffers[i].ReleaseAndGetAddressOf()));
+		if (FAILED(result))
+		{
+			assert(false);
+			return result;
+		}
+
+		_dev->CreateRenderTargetView(_backBuffers[i].Get(), &rtvDesc, handle);
+		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 
 	return result;
