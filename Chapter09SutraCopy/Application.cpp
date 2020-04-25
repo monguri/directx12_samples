@@ -100,7 +100,7 @@ std::wstring GetWideStringFromString(const std::string& str)
 	return wstr;
 }
 
-ComPtr<ID3D12Resource> CreateGrayGradientTexture()
+ID3D12Resource* CreateGrayGradientTexture()
 {
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
@@ -114,14 +114,14 @@ ComPtr<ID3D12Resource> CreateGrayGradientTexture()
 		256
 	);
 
-	ComPtr<ID3D12Resource> texbuff = nullptr;
+	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
-		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(&texbuff)
 	);
 	if (FAILED(result))
 	{
@@ -159,7 +159,7 @@ ComPtr<ID3D12Resource> CreateGrayGradientTexture()
 	return texbuff;
 }
 
-ComPtr<ID3D12Resource> CreateWhiteTexture()
+ID3D12Resource* CreateWhiteTexture()
 {
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
@@ -173,14 +173,14 @@ ComPtr<ID3D12Resource> CreateWhiteTexture()
 		4
 	);
 
-	ComPtr<ID3D12Resource> texbuff = nullptr;
+	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
-		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(&texbuff)
 	);
 	if (FAILED(result))
 	{
@@ -208,7 +208,7 @@ ComPtr<ID3D12Resource> CreateWhiteTexture()
 	return texbuff;
 }
 
-ComPtr<ID3D12Resource> CreateBlackTexture()
+ID3D12Resource* CreateBlackTexture()
 {
 	// テクスチャバッファ作成
 	CD3DX12_HEAP_PROPERTIES texHeapProp(
@@ -222,14 +222,14 @@ ComPtr<ID3D12Resource> CreateBlackTexture()
 		4
 	);
 
-	ComPtr<ID3D12Resource> texbuff = nullptr;
+	ID3D12Resource* texbuff = nullptr;
 	HRESULT result = _dev->CreateCommittedResource(
 		&texHeapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
-		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(&texbuff)
 	);
 	if (FAILED(result))
 	{
@@ -579,9 +579,9 @@ bool Application::Init()
 	char signature[3];
 	PMDHeader pmdheader = {};
 	FILE* fp = nullptr;
-	std::string strModelPath = "model/初音ミク.pmd";
+	//std::string strModelPath = "model/初音ミク.pmd";
 	//std::string strModelPath = "model/初音ミクmetal.pmd";
-	//std::string strModelPath = "model/巡音ルカ.pmd";
+	std::string strModelPath = "model/巡音ルカ.pmd";
 	errno_t error = fopen_s(&fp, strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
