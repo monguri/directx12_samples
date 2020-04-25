@@ -436,132 +436,6 @@ bool Application::Init()
 	//std::string strModelPath = "model/巡音ルカ.pmd";
 	result = LoadPMDFileToCreateBuffer(strModelPath);
 
-	// シェーダの準備
-	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
-	ComPtr<ID3DBlob> _vsBlob = nullptr;
-	ComPtr<ID3DBlob> _psBlob = nullptr;
-
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-	result = D3DCompileFromFile(
-		L"BasicVertexShader.hlsl",
-		nullptr,
-		D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"BasicVS",
-		"vs_5_0",
-		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-		0,
-		&_vsBlob,
-		&errorBlob
-	);
-	if (FAILED(result))
-	{
-		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-		{
-			::OutputDebugStringA("ファイルが見当たりません。");
-		}
-		else
-		{
-			std::string errstr;
-			errstr.resize(errorBlob->GetBufferSize());
-			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
-			OutputDebugStringA(errstr.c_str());
-		}
-
-		exit(1);
-	}
-
-	result = D3DCompileFromFile(
-		L"BasicPixelShader.hlsl",
-		nullptr,
-		D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"BasicPS",
-		"ps_5_0",
-		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-		0,
-		&_psBlob,
-		&errorBlob
-	);
-	if (FAILED(result))
-	{
-		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-		{
-			::OutputDebugStringA("ファイルが見当たりません。");
-		}
-		else
-		{
-			std::string errstr;
-			errstr.resize(errorBlob->GetBufferSize());
-			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
-			OutputDebugStringA(errstr.c_str());
-		}
-
-		exit(1);
-	}
-
-	// 頂点レイアウトの設定
-	D3D12_INPUT_ELEMENT_DESC posInputLayout;
-	posInputLayout.SemanticName = "POSITION";
-	posInputLayout.SemanticIndex = 0;
-	posInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	posInputLayout.InputSlot = 0;
-	posInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	posInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	posInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC normalInputLayout;
-	normalInputLayout.SemanticName = "NORMAL";
-	normalInputLayout.SemanticIndex = 0;
-	normalInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	normalInputLayout.InputSlot = 0;
-	normalInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	normalInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	normalInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC texcoordInputLayout;
-	texcoordInputLayout.SemanticName = "TEXCOORD";
-	texcoordInputLayout.SemanticIndex = 0;
-	texcoordInputLayout.Format = DXGI_FORMAT_R32G32_FLOAT;
-	texcoordInputLayout.InputSlot = 0;
-	texcoordInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	texcoordInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	texcoordInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC bonenoInputLayout;
-	bonenoInputLayout.SemanticName = "BONE_NO";
-	bonenoInputLayout.SemanticIndex = 0;
-	bonenoInputLayout.Format = DXGI_FORMAT_R16G16_UINT;
-	bonenoInputLayout.InputSlot = 0;
-	bonenoInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	bonenoInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	bonenoInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC weightInputLayout;
-	weightInputLayout.SemanticName = "WEIGHT";
-	weightInputLayout.SemanticIndex = 0;
-	weightInputLayout.Format = DXGI_FORMAT_R8_UINT;
-	weightInputLayout.InputSlot = 0;
-	weightInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	weightInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	weightInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC edgeflgInputLayout;
-	edgeflgInputLayout.SemanticName = "EDGE_FLG";
-	edgeflgInputLayout.SemanticIndex = 0;
-	edgeflgInputLayout.Format = DXGI_FORMAT_R8_UINT;
-	edgeflgInputLayout.InputSlot = 0;
-	edgeflgInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	edgeflgInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	edgeflgInputLayout.InstanceDataStepRate = 0;
-
-	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {
-		posInputLayout,
-		normalInputLayout,
-		texcoordInputLayout,
-		bonenoInputLayout,
-		weightInputLayout,
-		edgeflgInputLayout,
-	};
-
 	CD3DX12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
 	// VS用の行列
 	descTblRange[0].Init(
@@ -608,6 +482,7 @@ bool Application::Init()
 
 	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
 	ComPtr<ID3DBlob> rootSigBlob = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
 	result = D3D12SerializeRootSignature(
 		&rootSignatureDesc,
 		D3D_ROOT_SIGNATURE_VERSION_1_0,
@@ -622,30 +497,7 @@ bool Application::Init()
 		IID_PPV_ARGS(_rootsignature.ReleaseAndGetAddressOf())
 	);
 
-	// グラフィックスパイプラインステート作成
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
-	gpipeline.pRootSignature = _rootsignature.Get();
-	gpipeline.VS = CD3DX12_SHADER_BYTECODE(_vsBlob.Get());
-	gpipeline.PS = CD3DX12_SHADER_BYTECODE(_psBlob.Get());
-	gpipeline.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	gpipeline.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-	gpipeline.DepthStencilState.DepthEnable = true;
-	gpipeline.DepthStencilState.StencilEnable = false;
-	gpipeline.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-	gpipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	gpipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	gpipeline.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	gpipeline.InputLayout.pInputElementDescs = inputLayouts;
-	gpipeline.InputLayout.NumElements = _countof(inputLayouts);
-	gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-	gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	gpipeline.NumRenderTargets = 1;
-	gpipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	gpipeline.SampleDesc.Count = 1;
-	gpipeline.SampleDesc.Quality = 0;
-
-	result = _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
+	result = CreateGraphicsPipeline();
 
 	// 定数バッファ用データ
 	// 定数バッファ作成
@@ -918,14 +770,7 @@ HRESULT Application::CreateCommand()
 	cmdQueueDesc.NodeMask = 0;
 	cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	result = _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(_cmdQueue.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	return result;
+	return _dev->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(_cmdQueue.ReleaseAndGetAddressOf()));
 }
 
 HRESULT Application::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc)
@@ -1364,5 +1209,161 @@ HRESULT Application::LoadPMDFileToCreateBuffer(const std::string& path)
 	}
 
 	return result;
+}
+
+HRESULT Application::CreateGraphicsPipeline()
+{
+	// シェーダの準備
+	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
+	ComPtr<ID3DBlob> _vsBlob = nullptr;
+	ComPtr<ID3DBlob> _psBlob = nullptr;
+
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+	HRESULT result = D3DCompileFromFile(
+		L"BasicVertexShader.hlsl",
+		nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"BasicVS",
+		"vs_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		&_vsBlob,
+		&errorBlob
+	);
+	if (FAILED(result))
+	{
+		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+		{
+			::OutputDebugStringA("ファイルが見当たりません。");
+		}
+		else
+		{
+			std::string errstr;
+			errstr.resize(errorBlob->GetBufferSize());
+			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
+			OutputDebugStringA(errstr.c_str());
+		}
+
+		assert(false);
+		return result;
+	}
+
+	result = D3DCompileFromFile(
+		L"BasicPixelShader.hlsl",
+		nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"BasicPS",
+		"ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		&_psBlob,
+		&errorBlob
+	);
+	if (FAILED(result))
+	{
+		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+		{
+			::OutputDebugStringA("ファイルが見当たりません。");
+		}
+		else
+		{
+			std::string errstr;
+			errstr.resize(errorBlob->GetBufferSize());
+			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
+			OutputDebugStringA(errstr.c_str());
+		}
+
+		assert(false);
+		return result;
+	}
+
+	// 頂点レイアウトの設定
+	D3D12_INPUT_ELEMENT_DESC posInputLayout;
+	posInputLayout.SemanticName = "POSITION";
+	posInputLayout.SemanticIndex = 0;
+	posInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	posInputLayout.InputSlot = 0;
+	posInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	posInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	posInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC normalInputLayout;
+	normalInputLayout.SemanticName = "NORMAL";
+	normalInputLayout.SemanticIndex = 0;
+	normalInputLayout.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	normalInputLayout.InputSlot = 0;
+	normalInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	normalInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	normalInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC texcoordInputLayout;
+	texcoordInputLayout.SemanticName = "TEXCOORD";
+	texcoordInputLayout.SemanticIndex = 0;
+	texcoordInputLayout.Format = DXGI_FORMAT_R32G32_FLOAT;
+	texcoordInputLayout.InputSlot = 0;
+	texcoordInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	texcoordInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	texcoordInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC bonenoInputLayout;
+	bonenoInputLayout.SemanticName = "BONE_NO";
+	bonenoInputLayout.SemanticIndex = 0;
+	bonenoInputLayout.Format = DXGI_FORMAT_R16G16_UINT;
+	bonenoInputLayout.InputSlot = 0;
+	bonenoInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	bonenoInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	bonenoInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC weightInputLayout;
+	weightInputLayout.SemanticName = "WEIGHT";
+	weightInputLayout.SemanticIndex = 0;
+	weightInputLayout.Format = DXGI_FORMAT_R8_UINT;
+	weightInputLayout.InputSlot = 0;
+	weightInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	weightInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	weightInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC edgeflgInputLayout;
+	edgeflgInputLayout.SemanticName = "EDGE_FLG";
+	edgeflgInputLayout.SemanticIndex = 0;
+	edgeflgInputLayout.Format = DXGI_FORMAT_R8_UINT;
+	edgeflgInputLayout.InputSlot = 0;
+	edgeflgInputLayout.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	edgeflgInputLayout.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+	edgeflgInputLayout.InstanceDataStepRate = 0;
+
+	D3D12_INPUT_ELEMENT_DESC inputLayouts[] = {
+		posInputLayout,
+		normalInputLayout,
+		texcoordInputLayout,
+		bonenoInputLayout,
+		weightInputLayout,
+		edgeflgInputLayout,
+	};
+
+	// グラフィックスパイプラインステート作成
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
+	gpipeline.pRootSignature = _rootsignature.Get();
+	gpipeline.VS = CD3DX12_SHADER_BYTECODE(_vsBlob.Get());
+	gpipeline.PS = CD3DX12_SHADER_BYTECODE(_psBlob.Get());
+	gpipeline.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	gpipeline.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	gpipeline.DepthStencilState.DepthEnable = true;
+	gpipeline.DepthStencilState.StencilEnable = false;
+	gpipeline.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	gpipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	gpipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	gpipeline.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	gpipeline.InputLayout.pInputElementDescs = inputLayouts;
+	gpipeline.InputLayout.NumElements = _countof(inputLayouts);
+	gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+	gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	gpipeline.NumRenderTargets = 1;
+	gpipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	gpipeline.SampleDesc.Count = 1;
+	gpipeline.SampleDesc.Quality = 0;
+
+	return _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
 }
 

@@ -97,5 +97,6 @@ private:
 	HRESULT CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreateDepthStencil();
 	HRESULT LoadPMDFileToCreateBuffer(const std::string& path);
+	HRESULT CreateGraphicsPipeline();
 };
 
