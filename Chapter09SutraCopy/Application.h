@@ -95,5 +95,6 @@ private:
 	HRESULT CreateCommand();
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
+	HRESULT CreateDepthStencil();
 };
 

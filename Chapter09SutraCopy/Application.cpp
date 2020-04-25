@@ -410,7 +410,7 @@ bool Application::Init()
 
 	result = CreateFinalRenderTarget(swapchainDesc);
 
-
+	// テクスチャローダー関数テーブル作成
 	loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] =
 	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
 		return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
@@ -426,43 +426,7 @@ bool Application::Init()
 		return LoadFromDDSFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
 	};
 
-	// 深度バッファ作成
-	D3D12_RESOURCE_DESC depthResDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		DXGI_FORMAT_D32_FLOAT,
-		window_width,
-		window_height,
-		1,
-		1,
-		1,
-		0,
-		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-	);
-
-	CD3DX12_HEAP_PROPERTIES depthHeapProp(D3D12_HEAP_TYPE_DEFAULT);
-
-	CD3DX12_CLEAR_VALUE depthClearValue(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
-	
-	result = _dev->CreateCommittedResource(
-		&depthHeapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&depthResDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthClearValue,
-		IID_PPV_ARGS(_depthBuffer.ReleaseAndGetAddressOf())
-	);
-	
-	// デプスステンシルビュー作成
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	result = _dev->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(_dsvHeap.ReleaseAndGetAddressOf()));
-
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-	_dev->CreateDepthStencilView(_depthBuffer.Get(), &dsvDesc, _dsvHeap->GetCPUDescriptorHandleForHeapStart());
-
+	result = CreateDepthStencil();
 
 	// フェンスの生成
 	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf()));
@@ -1309,6 +1273,58 @@ HRESULT Application::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapch
 		_dev->CreateRenderTargetView(_backBuffers[i].Get(), &rtvDesc, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
+
+	return result;
+}
+
+HRESULT Application::CreateDepthStencil()
+{
+	// 深度バッファ作成
+	D3D12_RESOURCE_DESC depthResDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_D32_FLOAT,
+		window_width,
+		window_height,
+		1,
+		1,
+		1,
+		0,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+	);
+
+	CD3DX12_HEAP_PROPERTIES depthHeapProp(D3D12_HEAP_TYPE_DEFAULT);
+
+	CD3DX12_CLEAR_VALUE depthClearValue(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
+	
+	HRESULT result = _dev->CreateCommittedResource(
+		&depthHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&depthResDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthClearValue,
+		IID_PPV_ARGS(_depthBuffer.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+	
+	// デプスステンシルビュー作成
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	result = _dev->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(_dsvHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+	_dev->CreateDepthStencilView(_depthBuffer.Get(), &dsvDesc, _dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return result;
 }
