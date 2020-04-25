@@ -50,6 +50,7 @@ bool Application::Init()
 	CreateGameWindow();
 
 	_dx12.reset(new Dx12Wrapper(_hwnd));
+	_pmdRenderer.reset(new PMDRenderer(*_dx12));
 
 	return true;
 }
@@ -74,7 +75,11 @@ void Application::Run()
 			break;
 		}
 
-		_dx12->Draw(angle);
+		// TODO:•À‚Ñ‚ª‚¨‚©‚µ‚¢
+		_dx12->BeginDraw(angle);
+		_pmdRenderer->Draw();
+		_dx12->SetCamera();
+		_dx12->EndDraw();
 	}
 }
 
