@@ -9,9 +9,8 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="リソース ファイル">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{8fe6011d-6566-4a44-8f61-efb7325bd65e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -23,15 +22,21 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="BasicPixelShader.hlsl" />
-    <FxCompile Include="BasicVertexShader.hlsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="BasicShaderHeader.hlsli" />
+    <FxCompile Include="BasicPixelShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="BasicVertexShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BasicShaderHeader.hlsli">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>
