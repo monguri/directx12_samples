@@ -381,53 +381,7 @@ bool Application::Init()
 	EnableDebugLayer();
 #endif // _DEBUG
 
-	// DXGIFactoryの生成
-	if (FAILED(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(_dxgiFactory.ReleaseAndGetAddressOf()))))
-	{
-		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(_dxgiFactory.ReleaseAndGetAddressOf()))))
-		{
-			return false;
-		}
-	}
-
-	// NVIDIAアダプタの選択
-	std::vector<ComPtr<IDXGIAdapter>> adapters;
-	ComPtr<IDXGIAdapter> tmpAdapter = nullptr;
-	for (int i = 0; _dxgiFactory->EnumAdapters(i, &tmpAdapter) != DXGI_ERROR_NOT_FOUND; ++i)
-	{
-		adapters.push_back(tmpAdapter);
-	}
-
-	ComPtr<IDXGIAdapter> nvidiaAdapter = nullptr;
-	for (ComPtr<IDXGIAdapter> adapter : adapters)
-	{
-		DXGI_ADAPTER_DESC desc = {};
-		adapter->GetDesc(&desc);
-		std::wstring strDesc = desc.Description;
-		if (strDesc.find(L"NVIDIA") != std::string::npos)
-		{
-			nvidiaAdapter = adapter;
-			break;
-		}
-	}
-
-	D3D_FEATURE_LEVEL levels[] = {
-		D3D_FEATURE_LEVEL_12_1,
-		D3D_FEATURE_LEVEL_12_0,
-		D3D_FEATURE_LEVEL_11_1,
-		D3D_FEATURE_LEVEL_11_0,
-	};
-
-	// Direct3Dデバイスの初期化
-	D3D_FEATURE_LEVEL featureLevel;
-	for (D3D_FEATURE_LEVEL level : levels)
-	{
-		if (D3D12CreateDevice(nvidiaAdapter.Get(), level, IID_PPV_ARGS(_dev.ReleaseAndGetAddressOf())) == S_OK)
-		{
-			featureLevel = level;
-			break;
-		}
-	}
+	result = InitializeDXGIDevice();
 
 	// コマンドアロケータとコマンドリストの生成
 	result = _dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(_cmdAllocator.ReleaseAndGetAddressOf()));
@@ -1262,5 +1216,59 @@ void Application::CreateGameWindow()
 		_windowClass.hInstance,
 		nullptr
 	);
+}
+
+HRESULT Application::InitializeDXGIDevice()
+{
+	// DXGIFactoryの生成
+	HRESULT result = CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(_dxgiFactory.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		return result;
+	}
+
+	// NVIDIAアダプタの選択
+	std::vector<ComPtr<IDXGIAdapter>> adapters;
+	ComPtr<IDXGIAdapter> tmpAdapter = nullptr;
+	for (int i = 0; _dxgiFactory->EnumAdapters(i, &tmpAdapter) != DXGI_ERROR_NOT_FOUND; ++i)
+	{
+		adapters.push_back(tmpAdapter);
+	}
+
+	ComPtr<IDXGIAdapter> nvidiaAdapter = nullptr;
+	for (ComPtr<IDXGIAdapter> adapter : adapters)
+	{
+		DXGI_ADAPTER_DESC desc = {};
+		adapter->GetDesc(&desc);
+		std::wstring strDesc = desc.Description;
+		if (strDesc.find(L"NVIDIA") != std::string::npos)
+		{
+			nvidiaAdapter = adapter;
+			break;
+		}
+	}
+
+	D3D_FEATURE_LEVEL levels[] = {
+		D3D_FEATURE_LEVEL_12_1,
+		D3D_FEATURE_LEVEL_12_0,
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0,
+	};
+
+	result = S_FALSE;
+
+	// Direct3Dデバイスの初期化
+	D3D_FEATURE_LEVEL featureLevel;
+	for (D3D_FEATURE_LEVEL level : levels)
+	{
+		if (D3D12CreateDevice(nvidiaAdapter.Get(), level, IID_PPV_ARGS(_dev.ReleaseAndGetAddressOf())) == S_OK)
+		{
+			featureLevel = level;
+			result = S_OK;
+			break;
+		}
+	}
+
+	return result;
 }
 

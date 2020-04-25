@@ -91,5 +91,6 @@ private:
 	void operator=(const Application&) = delete;
 
 	void CreateGameWindow();
+	HRESULT InitializeDXGIDevice();
 };
 
