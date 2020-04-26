@@ -136,14 +136,6 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 	_spaResources.resize(materialNum);
 	_toonResources.resize(materialNum);
 
-	//TODO:PMDActorÇ≤Ç∆Ç…çÏÇÈÇÃÇÕìKêÿÇ≈Ç»Ç¢ÅBPMDRendererÇ…à⁄ÇªÇ§
-	ComPtr<ID3D12Resource> whiteTex = _renderer.CreateWhiteTexture();
-	ComPtr<ID3D12Resource> blackTex = _renderer.CreateBlackTexture();
-	ComPtr<ID3D12Resource> gradTex = _renderer.CreateGrayGradientTexture();
-	assert(whiteTex != nullptr);
-	assert(blackTex != nullptr);
-	assert(gradTex != nullptr);
-
 	{
 		std::vector<PMDMaterial> pmdMaterials(materialNum);
 		fread(pmdMaterials.data(), pmdMaterials.size() * sizeof(PMDMaterial), 1, fp);
@@ -238,22 +230,22 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 
 			if (_toonResources[i] == nullptr)
 			{
-				_toonResources[i] = gradTex;
+				_toonResources[i] = _renderer.GetGrayGradientTexture();
 			}
 
 			if (_textureResources[i] == nullptr)
 			{
-				_textureResources[i] = whiteTex;
+				_textureResources[i] = _renderer.GetWhiteTexture();
 			}
 
 			if (_sphResources[i] == nullptr)
 			{
-				_sphResources[i] = whiteTex;
+				_sphResources[i] = _renderer.GetWhiteTexture();
 			}
 
 			if (_spaResources[i] == nullptr)
 			{
-				_spaResources[i] = blackTex;
+				_spaResources[i] = _renderer.GetBlackTexture();
 			}
 		}
 	}

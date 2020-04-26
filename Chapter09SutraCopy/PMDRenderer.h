@@ -13,9 +13,9 @@ public:
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
-	ComPtr<ID3D12Resource> CreateWhiteTexture();
-	ComPtr<ID3D12Resource> CreateBlackTexture();
+	ComPtr<ID3D12Resource> GetGrayGradientTexture();
+	ComPtr<ID3D12Resource> GetWhiteTexture();
+	ComPtr<ID3D12Resource> GetBlackTexture();
 
 private:
 	class Dx12Wrapper& _dx12;
@@ -23,7 +23,15 @@ private:
 	ComPtr<ID3D12PipelineState> _pipelinestate = nullptr;
 	ComPtr<ID3D12RootSignature> _rootsignature = nullptr;
 
+	ComPtr<ID3D12Resource> _gradTex = nullptr;
+	ComPtr<ID3D12Resource> _whiteTex = nullptr;
+	ComPtr<ID3D12Resource> _blackTex = nullptr;
+
 	HRESULT CreateRootSignature();
 	HRESULT CreateGraphicsPipeline();
+
+	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
+	ComPtr<ID3D12Resource> CreateWhiteTexture();
+	ComPtr<ID3D12Resource> CreateBlackTexture();
 };
 

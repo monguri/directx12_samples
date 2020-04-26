@@ -20,6 +20,13 @@ PMDRenderer::PMDRenderer(Dx12Wrapper& dx12) : _dx12(dx12)
 		return;
 	}
 
+	_whiteTex = CreateWhiteTexture();
+	_blackTex = CreateBlackTexture();
+	_gradTex = CreateGrayGradientTexture();
+	assert(_whiteTex != nullptr);
+	assert(_blackTex != nullptr);
+	assert(_gradTex != nullptr);
+
 	return;
 }
 
@@ -32,6 +39,8 @@ void PMDRenderer::PrepareDraw()
 
 ComPtr<ID3D12Resource> PMDRenderer::CreateGrayGradientTexture()
 {
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
 		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
@@ -93,6 +102,8 @@ ComPtr<ID3D12Resource> PMDRenderer::CreateGrayGradientTexture()
 
 ComPtr<ID3D12Resource> PMDRenderer::CreateWhiteTexture()
 {
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
 	// テクスチャバッファ作成
 	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
 		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
@@ -144,6 +155,8 @@ ComPtr<ID3D12Resource> PMDRenderer::CreateWhiteTexture()
 
 ComPtr<ID3D12Resource> PMDRenderer::CreateBlackTexture()
 {
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
 	// テクスチャバッファ作成
 	CD3DX12_HEAP_PROPERTIES texHeapProp(
 		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
@@ -191,6 +204,21 @@ ComPtr<ID3D12Resource> PMDRenderer::CreateBlackTexture()
 	}
 
 	return texbuff;
+}
+
+ComPtr<ID3D12Resource> PMDRenderer::GetGrayGradientTexture()
+{
+	return _gradTex;
+}
+
+ComPtr<ID3D12Resource> PMDRenderer::GetWhiteTexture()
+{
+	return _whiteTex;
+}
+
+ComPtr<ID3D12Resource> PMDRenderer::GetBlackTexture()
+{
+	return _blackTex;
 }
 
 HRESULT PMDRenderer::CreateRootSignature()
