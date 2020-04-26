@@ -13,36 +13,49 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-std::wstring GetWideStringFromString(const std::string& str)
+namespace
 {
-	// MultiByteToWideCharで使うには先にwchar_t配列を必要なサイズの確保が必要。
-	// 固定長配列を返してもいいがstd::wstringの方が扱いやすいので
-	// 先に長さを取得してresizeしておく
+	std::wstring GetWideStringFromString(const std::string& str)
+	{
+		// MultiByteToWideCharで使うには先にwchar_t配列を必要なサイズの確保が必要。
+		// 固定長配列を返してもいいがstd::wstringの方が扱いやすいので
+		// 先に長さを取得してresizeしておく
 
-	// 引数の文字列の長さ取得
-	int num1 = MultiByteToWideChar(
-		CP_ACP,
-		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
-		str.c_str(),
-		-1,
-		nullptr,
-		0
-	);
-	std::wstring wstr;
-	wstr.resize(num1);
+		// 引数の文字列の長さ取得
+		int num1 = MultiByteToWideChar(
+			CP_ACP,
+			MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+			str.c_str(),
+			-1,
+			nullptr,
+			0
+		);
+		std::wstring wstr;
+		wstr.resize(num1);
 
-	int num2 = MultiByteToWideChar(
-		CP_ACP,
-		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
-		str.c_str(),
-		-1,
-		&wstr[0],
-		num1
-	);
+		int num2 = MultiByteToWideChar(
+			CP_ACP,
+			MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+			str.c_str(),
+			-1,
+			&wstr[0],
+			num1
+		);
 
-	assert(num1 == num2);
-	return wstr;
-}
+		assert(num1 == num2);
+		return wstr;
+	}
+
+	void EnableDebugLayer()
+	{
+		ComPtr<ID3D12Debug> debugLayer = nullptr;
+		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugLayer.ReleaseAndGetAddressOf()))))
+		{
+			debugLayer->EnableDebugLayer();
+			debugLayer->Release();
+		}
+	}
+} // namespace
 
 ComPtr<ID3D12Device> Dx12Wrapper::Device() const
 {
@@ -135,16 +148,6 @@ ComPtr<ID3D12Resource> Dx12Wrapper::LoadTextureFromFile(const std::string& texPa
 	// テーブルにキャッシュ
 	_resourceTable[texPath] = texbuff;
 	return texbuff;
-}
-
-void EnableDebugLayer()
-{
-	ComPtr<ID3D12Debug> debugLayer = nullptr;
-	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugLayer.ReleaseAndGetAddressOf()))))
-	{
-		debugLayer->EnableDebugLayer();
-		debugLayer->Release();
-	}
 }
 
 struct SceneData
