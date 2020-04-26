@@ -28,6 +28,7 @@ min16uint2 weight : WEIGHT
 	output.normal = mul(world, normal);
 	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
+	// 本ではmul(view, eye)にしているがrayはワールド座標で扱うのでviewは乗算しないのが正しい。実際にスペキュラをデバッグ表示して確認した
 	output.ray = normalize(pos.xyz - eye);
 	return output;
 }
