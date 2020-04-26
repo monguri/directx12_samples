@@ -75,10 +75,10 @@ void Application::Run()
 			break;
 		}
 
-		// TODO:並びがおかしい
 		_dx12->BeginDraw(angle);
+		_pmdRenderer->PrepareDraw();
+		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
 		_pmdRenderer->Draw();
-		_dx12->SetCamera();
 		_dx12->EndDraw();
 	}
 }

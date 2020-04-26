@@ -54,15 +54,17 @@ PMDRenderer::PMDRenderer(Dx12Wrapper& dx12) : _dx12(dx12)
 	return;
 }
 
-void PMDRenderer::Draw()
+void PMDRenderer::PrepareDraw()
 {
 	_dx12.CommandList()->SetPipelineState(_pipelinestate.Get());
-
+	_dx12.CommandList()->SetGraphicsRootSignature(_rootsignature.Get());
 	_dx12.CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
+void PMDRenderer::Draw()
+{
 	_dx12.CommandList()->IASetVertexBuffers(0, 1, &_vbView);
 	_dx12.CommandList()->IASetIndexBuffer(&_ibView);
-
-	_dx12.CommandList()->SetGraphicsRootSignature(_rootsignature.Get());
 
 	ID3D12DescriptorHeap* mdh[] = {_materialDescHeap.Get()};
 	_dx12.CommandList()->SetDescriptorHeaps(1, mdh);
@@ -79,7 +81,6 @@ void PMDRenderer::Draw()
 		materialH.ptr += cbvsrvIncSize;
 		idxOffset += m.indicesNum;
 	}
-
 }
 
 ComPtr<ID3D12Resource> PMDRenderer::CreateGrayGradientTexture()

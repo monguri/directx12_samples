@@ -9,6 +9,7 @@ class PMDRenderer
 {
 public:
 	PMDRenderer(class Dx12Wrapper& dx12);
+	void PrepareDraw();
 	void Draw();
 
 private:
