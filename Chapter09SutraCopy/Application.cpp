@@ -51,6 +51,7 @@ bool Application::Init()
 
 	_dx12.reset(new Dx12Wrapper(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(*_dx12));
+	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer));
 
 	return true;
 }
@@ -78,7 +79,7 @@ void Application::Run()
 		_dx12->BeginDraw(angle);
 		_pmdRenderer->PrepareDraw();
 		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
-		_pmdRenderer->Draw();
+		_pmdActor->Draw();
 		_dx12->EndDraw();
 	}
 }

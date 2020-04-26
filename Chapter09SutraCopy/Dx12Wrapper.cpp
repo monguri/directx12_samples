@@ -254,6 +254,7 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 	return;
 }
 
+// TODO:angle‚ÍPMDActor‚Ì‚½‚ß‚Ì‚à‚ÌB‚ ‚Æ‚ÅˆÚ‚»‚¤
 void Dx12Wrapper::BeginDraw(float& angle)
 {
 	angle += 0.005f;

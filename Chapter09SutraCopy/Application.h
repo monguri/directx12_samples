@@ -17,6 +17,7 @@ private:
 	HWND _hwnd;
 	std::shared_ptr<class Dx12Wrapper> _dx12;
 	std::shared_ptr<class PMDRenderer> _pmdRenderer;
+	std::shared_ptr<class PMDActor> _pmdActor;
 
 	Application();
 	~Application();
