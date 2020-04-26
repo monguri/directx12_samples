@@ -66,8 +66,6 @@ void Application::Run()
 	ShowWindow(_hwnd, SW_SHOW);
 
 	MSG msg = {};
-	float angle = 0.0f;
-
 	while (true)
 	{
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -81,7 +79,7 @@ void Application::Run()
 			break;
 		}
 
-		_dx12->BeginDraw(angle);
+		_dx12->BeginDraw();
 		_pmdRenderer->PrepareDraw();
 		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
 		_pmdActor->Draw();

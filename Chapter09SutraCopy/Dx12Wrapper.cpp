@@ -253,74 +253,6 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 	return;
 }
 
-void Dx12Wrapper::BeginDraw(float& angle)
-{
-	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
-
-	// Present状態からレンダーターゲット状態にする
-	_cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
-	);
-
-	// レンダーターゲットを指定する
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvH(_rtvHeaps->GetCPUDescriptorHandleForHeapStart());
-	rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-	_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
-
-	// レンダーターゲットをクリアする
-	float clearColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
-	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-	_cmdList->RSSetViewports(1, &_viewport);
-	_cmdList->RSSetScissorRects(1, &_scissorrect);
-
-}
-
-void Dx12Wrapper::SetCamera()
-{
-	ID3D12DescriptorHeap* bdh[] = {_sceneDescHeap.Get()};
-	_cmdList->SetDescriptorHeaps(1, bdh);
-	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
-}
-
-void Dx12Wrapper::EndDraw()
-{
-	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
-
-	// レンダーターゲット状態からPresent状態にする
-	_cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
-	);
-
-	// コマンドリストのクローズ
-	_cmdList->Close();
-
-	// コマンドリストの実行
-	ID3D12CommandList* cmdlists[] = { _cmdList.Get() };
-	_cmdQueue->ExecuteCommandLists(1, cmdlists);
-	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
-
-	if (_fence->GetCompletedValue() != _fenceVal)
-	{
-		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
-		_fence->SetEventOnCompletion(_fenceVal, event);
-		WaitForSingleObject(event, INFINITE);
-		CloseHandle(event);
-	}
-
-	// コマンドリストのクリア
-	_cmdAllocator->Reset();
-	_cmdList->Reset(_cmdAllocator.Get(), nullptr);
-
-	// スワップ
-	_swapchain->Present(1, 0);
-}
-
 HRESULT Dx12Wrapper::CreateDXGIDevice()
 {
 	// DXGIFactoryの生成
@@ -572,3 +504,72 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 
 	return result;
 }
+
+void Dx12Wrapper::BeginDraw()
+{
+	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
+
+	// Present状態からレンダーターゲット状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+
+	// レンダーターゲットを指定する
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvH(_rtvHeaps->GetCPUDescriptorHandleForHeapStart());
+	rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+	_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
+
+	// レンダーターゲットをクリアする
+	float clearColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
+	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	_cmdList->RSSetViewports(1, &_viewport);
+	_cmdList->RSSetScissorRects(1, &_scissorrect);
+
+}
+
+void Dx12Wrapper::SetCamera()
+{
+	ID3D12DescriptorHeap* bdh[] = {_sceneDescHeap.Get()};
+	_cmdList->SetDescriptorHeaps(1, bdh);
+	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
+}
+
+void Dx12Wrapper::EndDraw()
+{
+	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
+
+	// レンダーターゲット状態からPresent状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
+	);
+
+	// コマンドリストのクローズ
+	_cmdList->Close();
+
+	// コマンドリストの実行
+	ID3D12CommandList* cmdlists[] = { _cmdList.Get() };
+	_cmdQueue->ExecuteCommandLists(1, cmdlists);
+	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
+
+	if (_fence->GetCompletedValue() != _fenceVal)
+	{
+		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+		_fence->SetEventOnCompletion(_fenceVal, event);
+		WaitForSingleObject(event, INFINITE);
+		CloseHandle(event);
+	}
+
+	// コマンドリストのクリア
+	_cmdAllocator->Reset();
+	_cmdList->Reset(_cmdAllocator.Get(), nullptr);
+
+	// スワップ
+	_swapchain->Present(1, 0);
+}
+

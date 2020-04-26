@@ -78,7 +78,7 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW _vbView;
 	D3D12_INDEX_BUFFER_VIEW _ibView;
 
-	HRESULT LoadPMDFileAndCreateBuffers(const std::string& path);
 	HRESULT CreateTransformConstantBuffer();
+	HRESULT LoadPMDFileAndCreateBuffers(const std::string& path);
 };
 

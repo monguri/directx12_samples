@@ -12,9 +12,6 @@ class Dx12Wrapper
 {
 public:
 	Dx12Wrapper(HWND hwnd);
-	void BeginDraw(float& angle);
-	void SetCamera();
-	void EndDraw();
 
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -23,6 +20,10 @@ public:
 	ComPtr<ID3D12GraphicsCommandList> CommandList() const;
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
+
+	void BeginDraw();
+	void SetCamera();
+	void EndDraw();
 
 private:
 	ComPtr<ID3D12Device> _dev = nullptr;
