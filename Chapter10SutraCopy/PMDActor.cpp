@@ -399,6 +399,8 @@ HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 		_boneNodeTable[parentName].children.emplace_back(&_boneNodeTable[pb.boneName]);
 	}
 
+	_boneMatrices.resize(boneNum);
+	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());
 
 	return result;
 }

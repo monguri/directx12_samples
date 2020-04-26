@@ -88,6 +88,8 @@ private:
 
 	std::map<std::string, BoneNode> _boneNodeTable;
 
+	std::vector<DirectX::XMMATRIX> _boneMatrices;
+
 	HRESULT CreateTransformConstantBuffer();
 	HRESULT LoadPMDFileAndCreateGeometryBuffers(const std::string& path);
 	HRESULT CreateMaterialBuffers();
