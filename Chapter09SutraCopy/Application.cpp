@@ -51,7 +51,12 @@ bool Application::Init()
 
 	_dx12.reset(new Dx12Wrapper(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(*_dx12));
-	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer));
+
+	// TODO:決め打ちでなく外からファイル名を指定したい
+	std::string strModelPath = "model/初音ミク.pmd";
+	//std::string strModelPath = "model/初音ミクmetal.pmd";
+	//std::string strModelPath = "model/巡音ルカ.pmd";
+	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer, strModelPath));
 
 	return true;
 }

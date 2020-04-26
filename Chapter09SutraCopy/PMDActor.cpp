@@ -28,14 +28,10 @@ namespace
 	}
 } // namespace
 
-PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer)
-	: _dx12(dx12), _renderer(renderer)
+PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& modelPath)
+: _dx12(dx12), _renderer(renderer)
 {
-	// TODO:決め打ちでなく外からファイル名を指定したい
-	std::string strModelPath = "model/初音ミク.pmd";
-	//std::string strModelPath = "model/初音ミクmetal.pmd";
-	//std::string strModelPath = "model/巡音ルカ.pmd";
-	HRESULT result = LoadPMDFileAndCreateBuffers(strModelPath);
+	HRESULT result = LoadPMDFileAndCreateBuffers(modelPath);
 	if (FAILED(result))
 	{
 		assert(false);

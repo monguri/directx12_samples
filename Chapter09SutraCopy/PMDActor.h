@@ -8,7 +8,7 @@
 class PMDActor
 {
 public:
-	PMDActor(class Dx12Wrapper& dx12, class PMDRenderer& renderer);
+	PMDActor(class Dx12Wrapper& dx12, class PMDRenderer& renderer, const std::string& modelPath);
 	void Draw();
 
 private:
