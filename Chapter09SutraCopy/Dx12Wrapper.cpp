@@ -258,8 +258,8 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 void Dx12Wrapper::BeginDraw(float& angle)
 {
 	angle += 0.005f;
-	_worldMat = XMMatrixRotationY(angle);
-	_mapScene->world = _worldMat;
+	_transform.world = XMMatrixRotationY(angle);
+	_mapScene->world = _transform.world;
 
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
@@ -325,6 +325,11 @@ void Dx12Wrapper::EndDraw()
 
 	// スワップ
 	_swapchain->Present(1, 0);
+}
+
+void* Dx12Wrapper::Transform::operator new(size_t size)
+{
+	return _aligned_malloc(size, 16);
 }
 
 HRESULT Dx12Wrapper::CreateDXGIDevice()
@@ -515,7 +520,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 {
 	// 定数バッファ用データ
 	// 定数バッファ作成
-	_worldMat = XMMatrixIdentity();
+	_transform.world = XMMatrixIdentity();
 	XMFLOAT3 eye(0, 15, -15);
 	XMFLOAT3 target(0, 15, 0);
 	XMFLOAT3 up(0, 1, 0);
@@ -548,7 +553,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		assert(false);
 		return result;
 	}
-	_mapScene->world = _worldMat;
+	_mapScene->world = _transform.world;
 	_mapScene->view = viewMat;
 	_mapScene->proj = projMat;
 	_mapScene->eye = eye;
