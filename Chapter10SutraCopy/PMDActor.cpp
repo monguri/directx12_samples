@@ -368,6 +368,37 @@ HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 
 	fclose(fp);
 
+	// ファイルにもつデータであれば親インデックスをもつのがデータが小さく
+	// なるが、トラバースを考えると逆に子の配列をもつデータ構造の方がよいので
+	// データを作り変える
+
+	// 作業用
+	std::vector<std::string> boneNames(boneNum);
+
+	// ボーンノードマップ作成
+	for (unsigned short idx = 0; idx < pmdBones.size(); idx++)
+	{
+		const PMDBone& pb = pmdBones[idx];
+		boneNames[idx] = pb.boneName;
+
+		BoneNode& node = _boneNodeTable[pb.boneName];
+		node.boneIdx = idx;
+		node.startPos = pb.pos;
+	}
+
+	// ボーンノード同士の親子関係の構築
+	for (const PMDBone& pb : pmdBones)
+	{
+		if (pb.parentNo >= pmdBones.size())
+		{
+			// 親はいない場合はunsigned shortの最大値が入っている
+			continue;
+		}
+
+		const std::string& parentName = boneNames[pb.parentNo];
+		_boneNodeTable[parentName].children.emplace_back(&_boneNodeTable[pb.boneName]);
+	}
+
 
 	return result;
 }

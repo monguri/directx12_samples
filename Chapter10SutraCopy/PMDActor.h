@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <map>
 #include <wrl.h>
 #include <DirectXMath.h>
 #include <d3d12.h>
@@ -77,6 +78,15 @@ private:
 
 	D3D12_VERTEX_BUFFER_VIEW _vbView;
 	D3D12_INDEX_BUFFER_VIEW _ibView;
+
+	struct BoneNode
+	{
+		unsigned short boneIdx;
+		DirectX::XMFLOAT3 startPos;
+		std::vector<BoneNode*> children;
+	};
+
+	std::map<std::string, BoneNode> _boneNodeTable;
 
 	HRESULT CreateTransformConstantBuffer();
 	HRESULT LoadPMDFileAndCreateGeometryBuffers(const std::string& path);
