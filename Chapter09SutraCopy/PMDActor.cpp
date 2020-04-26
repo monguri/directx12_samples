@@ -194,6 +194,36 @@ HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 	std::vector<unsigned short> indices(indicesNum);
 	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);
 
+	result = _dx12.Device()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(indices.size() * sizeof(indices[0])),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_idxBuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	// インデックスバッファへのデータ書き込み
+	unsigned short* idxMap = nullptr;
+	result = _idxBuff->Map(0, nullptr, (void**)&idxMap);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+	std::copy(indices.begin(), indices.end(), idxMap);
+	_idxBuff->Unmap(0, nullptr);
+
+	// インデックスバッファービューの用意
+	_ibView.BufferLocation = _idxBuff->GetGPUVirtualAddress();
+	_ibView.Format = DXGI_FORMAT_R16_UINT;
+	_ibView.SizeInBytes = (UINT)(indices.size() * sizeof(indices[0]));
+
 	// マテリアル情報の読み出し
 	unsigned int materialNum;
 	fread(&materialNum, sizeof(materialNum), 1, fp);
@@ -319,36 +349,6 @@ HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 	}
 
 	fclose(fp);
-
-	result = _dx12.Device()->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indices.size() * sizeof(indices[0])),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(_idxBuff.ReleaseAndGetAddressOf())
-	);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	// インデックスバッファへのデータ書き込み
-	unsigned short* idxMap = nullptr;
-	result = _idxBuff->Map(0, nullptr, (void**)&idxMap);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-	std::copy(indices.begin(), indices.end(), idxMap);
-	_idxBuff->Unmap(0, nullptr);
-
-	// インデックスバッファービューの用意
-	_ibView.BufferLocation = _idxBuff->GetGPUVirtualAddress();
-	_ibView.Format = DXGI_FORMAT_R16_UINT;
-	_ibView.SizeInBytes = (UINT)(indices.size() * sizeof(indices[0]));
 
 	return result;
 }
