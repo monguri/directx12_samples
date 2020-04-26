@@ -6,7 +6,7 @@ Texture2D<float4> toon : register(t3); // CLUT
 SamplerState smp : register(s0);
 SamplerState smpToon : register(s1);
 
-cbuffer Material : register(b1)
+cbuffer Material : register(b2)
 {
 	float4 diffuse;
 	float4 specular;

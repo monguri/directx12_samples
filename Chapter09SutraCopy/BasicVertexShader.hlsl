@@ -1,12 +1,16 @@
 #include "BasicShaderHeader.hlsli"
 
 // 定数バッファ
-cbuffer cubuff0 : register(b0)
+cbuffer SceneData : register(b0)
 {
-	matrix world;
 	matrix view;
 	matrix proj;
 	float3 eye;
+}
+
+cbuffer Transform : register(b1)
+{
+	matrix world;
 }
 
 Output BasicVS(
@@ -18,7 +22,8 @@ min16uint2 weight : WEIGHT
 )
 {
 	Output output;
-	output.pos = mul(mul(proj, mul(view, world)), pos);
+	pos = mul(world, pos);
+	output.svpos = mul(mul(proj, view), pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);
 	output.vnormal = mul(view, output.normal);

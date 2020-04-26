@@ -39,19 +39,9 @@ private:
 	// ファイルパスごとにリソースをキャッシュして使いまわすためのテーブル
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;
 
-	// XMMatrixをにヒープに確保するときに、XMMatrixはSIMD計算のために
-	// 16バイトアラインメントになっているため、対応できるようにnewを
-	// _aligned_mallocで実装したクラスを用意する
-	struct Transform
-	{
-		void* operator new(size_t size);
-		DirectX::XMMATRIX world;
-	};
-
-	Transform _transform;
-
+	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
-	ComPtr<ID3D12Resource> _constBuff = nullptr;
+	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
 
 	struct SceneData* _mapScene = nullptr;
 
@@ -60,7 +50,7 @@ private:
 
 	std::vector<ComPtr<ID3D12Resource>> _backBuffers;
 
-	ComPtr<ID3D12DescriptorHeap> _basicDescHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _sceneDescHeap = nullptr;
 
 	ComPtr<ID3D12DescriptorHeap> _rtvHeaps = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _dsvHeap = nullptr;

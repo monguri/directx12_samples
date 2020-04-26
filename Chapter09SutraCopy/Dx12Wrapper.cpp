@@ -149,7 +149,6 @@ void EnableDebugLayer()
 
 struct SceneData
 {
-	XMMATRIX world;
 	XMMATRIX view;
 	XMMATRIX proj;
 	XMFLOAT3 eye;
@@ -257,10 +256,6 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 // TODO:angleはPMDActorのためのもの。あとで移そう
 void Dx12Wrapper::BeginDraw(float& angle)
 {
-	angle += 0.005f;
-	_transform.world = XMMatrixRotationY(angle);
-	_mapScene->world = _transform.world;
-
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 	// Present状態からレンダーターゲット状態にする
@@ -288,9 +283,9 @@ void Dx12Wrapper::BeginDraw(float& angle)
 
 void Dx12Wrapper::SetCamera()
 {
-	ID3D12DescriptorHeap* bdh[] = {_basicDescHeap.Get()};
+	ID3D12DescriptorHeap* bdh[] = {_sceneDescHeap.Get()};
 	_cmdList->SetDescriptorHeaps(1, bdh);
-	_cmdList->SetGraphicsRootDescriptorTable(0, _basicDescHeap->GetGPUDescriptorHandleForHeapStart());
+	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
 void Dx12Wrapper::EndDraw()
@@ -325,11 +320,6 @@ void Dx12Wrapper::EndDraw()
 
 	// スワップ
 	_swapchain->Present(1, 0);
-}
-
-void* Dx12Wrapper::Transform::operator new(size_t size)
-{
-	return _aligned_malloc(size, 16);
 }
 
 HRESULT Dx12Wrapper::CreateDXGIDevice()
@@ -520,7 +510,6 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 {
 	// 定数バッファ用データ
 	// 定数バッファ作成
-	_transform.world = XMMatrixIdentity();
 	XMFLOAT3 eye(0, 15, -15);
 	XMFLOAT3 target(0, 15, 0);
 	XMFLOAT3 up(0, 1, 0);
@@ -539,7 +528,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(_constBuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_sceneConstBuff.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
@@ -547,13 +536,12 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		return result;
 	}
 
-	result = _constBuff->Map(0, nullptr, (void**)&_mapScene);
+	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mapScene);
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
-	_mapScene->world = _transform.world;
 	_mapScene->view = viewMat;
 	_mapScene->proj = projMat;
 	_mapScene->eye = eye;
@@ -565,18 +553,18 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	basicHeapDesc.NumDescriptors = 1;
 	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_basicDescHeap.ReleaseAndGetAddressOf()));
+	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_sceneDescHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_basicDescHeap->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_sceneDescHeap->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _constBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_constBuff->GetDesc().Width;
+	cbvDesc.BufferLocation = _sceneConstBuff->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_sceneConstBuff->GetDesc().Width;
 
 	_dev->CreateConstantBufferView(
 		&cbvDesc,

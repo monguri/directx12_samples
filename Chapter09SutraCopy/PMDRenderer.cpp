@@ -195,29 +195,36 @@ ComPtr<ID3D12Resource> PMDRenderer::CreateBlackTexture()
 
 HRESULT PMDRenderer::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE descTblRange[3] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
-	// VS用の行列
+	CD3DX12_DESCRIPTOR_RANGE descTblRange[4] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
+	// SceneData b0
 	descTblRange[0].Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
 		1,
 		0
 	);
-	// PS用のMaterialData
+	// Transform b1
 	descTblRange[1].Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
 		1,
 		1
 	);
-	// PS用の通常テクスチャとsphとspatとCLUT
+	// MaterialForHlsl b2
 	descTblRange[2].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+		1,
+		2
+	);
+	// PS用の通常テクスチャとsphとspatとCLUT
+	descTblRange[3].Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
 		4, // 通常テクスチャとsphとspatとCLUT
 		0
 	);
 
-	CD3DX12_ROOT_PARAMETER rootParams[2] = {};
-	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]);
-	rootParams[1].InitAsDescriptorTable(2, &descTblRange[1]);
+	CD3DX12_ROOT_PARAMETER rootParams[3] = {};
+	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]); // SceneData
+	rootParams[1].InitAsDescriptorTable(1, &descTblRange[1]); // Transform
+	rootParams[2].InitAsDescriptorTable(2, &descTblRange[2]); // Material
 
 	// サンプラ用のルートシグネチャ設定
 	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
@@ -232,7 +239,7 @@ HRESULT PMDRenderer::CreateRootSignature()
 	// ルートシグネチャ作成
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Init(
-		2,
+		3,
 		rootParams,
 		2,
 		samplerDescs,

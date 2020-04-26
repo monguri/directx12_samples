@@ -31,6 +31,7 @@ namespace
 PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer)
 	: _dx12(dx12), _renderer(renderer)
 {
+	// TODO:決め打ちでなく外からファイル名を指定したい
 	std::string strModelPath = "model/初音ミク.pmd";
 	//std::string strModelPath = "model/初音ミクmetal.pmd";
 	//std::string strModelPath = "model/巡音ルカ.pmd";
@@ -40,6 +41,15 @@ PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer)
 		assert(false);
 		return;
 	}
+
+	result = CreateTransformConstantBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	return;
 }
 
 HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
@@ -389,10 +399,78 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 	return result;
 }
 
+void* PMDActor::Transform::operator new(size_t size)
+{
+	return _aligned_malloc(size, 16);
+}
+
+HRESULT PMDActor::CreateTransformConstantBuffer()
+{
+	// 定数バッファ用データ
+	// 定数バッファ作成
+	HRESULT result = _dx12.Device()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(Transform) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_transformBuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	result = _transformBuff->Map(0, nullptr, (void**)&_mappedTransform);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	_transform.world = XMMatrixIdentity();
+	*_mappedTransform = _transform;
+
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC transformDescHeapDesc = {};
+	transformDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	transformDescHeapDesc.NodeMask = 0;
+	transformDescHeapDesc.NumDescriptors = 1;
+	transformDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	result = _dx12.Device()->CreateDescriptorHeap(&transformDescHeapDesc, IID_PPV_ARGS(_transformDescHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE transfomrHeapHandle(_transformDescHeap->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _transformBuff->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_transformBuff->GetDesc().Width;
+
+	_dx12.Device()->CreateConstantBufferView(
+		&cbvDesc,
+		transfomrHeapHandle
+	);
+
+	return result;
+}
+
 void PMDActor::Draw()
 {
+	_angle += 0.005f;
+	_mappedTransform->world = XMMatrixRotationY(_angle);
+
 	_dx12.CommandList()->IASetVertexBuffers(0, 1, &_vbView);
 	_dx12.CommandList()->IASetIndexBuffer(&_ibView);
+
+	ID3D12DescriptorHeap* tdh[] = {_transformDescHeap.Get()};
+	_dx12.CommandList()->SetDescriptorHeaps(1, tdh);
+	_dx12.CommandList()->SetGraphicsRootDescriptorTable(1, _transformDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	ID3D12DescriptorHeap* mdh[] = {_materialDescHeap.Get()};
 	_dx12.CommandList()->SetDescriptorHeaps(1, mdh);
@@ -404,7 +482,7 @@ void PMDActor::Draw()
 
 	for (const Material& m : _materials)
 	{
-		_dx12.CommandList()->SetGraphicsRootDescriptorTable(1, materialH);
+		_dx12.CommandList()->SetGraphicsRootDescriptorTable(2, materialH);
 		_dx12.CommandList()->DrawIndexedInstanced(m.indicesNum, 1, idxOffset, 0, 0);
 		materialH.ptr += cbvsrvIncSize;
 		idxOffset += m.indicesNum;

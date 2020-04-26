@@ -15,12 +15,29 @@ private:
 	class Dx12Wrapper& _dx12;
 	class PMDRenderer& _renderer;
 
+	float _angle = 0.0f;
+
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
+	// XMMatrixをにヒープに確保するときに、XMMatrixはSIMD計算のために
+	// 16バイトアラインメントになっているため、対応できるようにnewを
+	// _aligned_mallocで実装したクラスを用意する
+	struct Transform
+	{
+		void* operator new(size_t size);
+		DirectX::XMMATRIX world;
+	};
+
+	Transform _transform;
+	Transform* _mappedTransform = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _transformDescHeap = nullptr;
+
+	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _vertBuff = nullptr;
 	ComPtr<ID3D12Resource> _idxBuff = nullptr;
 	ComPtr<ID3D12Resource> _materialBuff = nullptr;
+	ComPtr<ID3D12Resource> _transformBuff = nullptr;
 
 	std::vector<ComPtr<ID3D12Resource>> _textureResources;
 	std::vector<ComPtr<ID3D12Resource>> _sphResources;
@@ -62,5 +79,6 @@ private:
 	D3D12_INDEX_BUFFER_VIEW _ibView;
 
 	HRESULT LoadPMDFileAndCreateBuffers(const std::string& path);
+	HRESULT CreateTransformConstantBuffer();
 };
 
