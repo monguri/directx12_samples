@@ -38,7 +38,14 @@ PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& 
 		return;
 	}
 
-	result = LoadPMDFileAndCreateBuffers(modelPath);
+	result = LoadPMDFileAndCreateGeometryBuffers(modelPath);
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	result = CreateMaterialBuffers();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -46,6 +53,11 @@ PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& 
 	}
 
 	return;
+}
+
+void* PMDActor::Transform::operator new(size_t size)
+{
+	return _aligned_malloc(size, 16);
 }
 
 HRESULT PMDActor::CreateTransformConstantBuffer()
@@ -104,7 +116,7 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 	return result;
 }
 
-HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
+HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 {
 	// PMDヘッダ格納データ
 	struct PMDHeader
@@ -338,12 +350,18 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 	_ibView.Format = DXGI_FORMAT_R16_UINT;
 	_ibView.SizeInBytes = (UINT)(indices.size() * sizeof(indices[0]));
 
+	return result;
+}
+
+HRESULT PMDActor::CreateMaterialBuffers()
+{
 	// マテリアルバッファを作成
 	// sizeof(MaterialForHlsl)の44バイトを256でアラインメントしているので256。
 	// かなりもったいない
 	// TODO:定数バッファをマテリアル数だけ作っているから、一個にまとめられないか？
+	size_t materialNum = _materials.size();
 	size_t materialBuffSize = (sizeof(MaterialForHlsl) + 0xff) & ~0xff;
-	result = _dx12.Device()->CreateCommittedResource(
+	HRESULT result = _dx12.Device()->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(materialBuffSize * materialNum),
@@ -370,7 +388,7 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
 	materialDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	materialDescHeapDesc.NodeMask = 0;
-	materialDescHeapDesc.NumDescriptors = materialNum * 5; // MaterialForHlslのCBVと通常テクスチャとsphとspaとCLUTのSRVの5つずつ
+	materialDescHeapDesc.NumDescriptors = (UINT)(materialNum * 5); // MaterialForHlslのCBVと通常テクスチャとsphとspaとCLUTのSRVの5つずつ
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	result = _dx12.Device()->CreateDescriptorHeap(&materialDescHeapDesc, IID_PPV_ARGS(_materialDescHeap.ReleaseAndGetAddressOf()));
@@ -441,11 +459,6 @@ HRESULT PMDActor::LoadPMDFileAndCreateBuffers(const std::string& path)
 	}
 
 	return result;
-}
-
-void* PMDActor::Transform::operator new(size_t size)
-{
-	return _aligned_malloc(size, 16);
 }
 
 void PMDActor::Draw()
