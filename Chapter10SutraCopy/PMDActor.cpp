@@ -348,7 +348,26 @@ HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
 		}
 	}
 
+	unsigned short boneNum = 0;
+	fread(&boneNum, sizeof(boneNum), 1, fp);
+
+#pragma pack(1)
+	// PMDボーンデータ読み出し用
+	struct PMDBone
+	{
+		char boneName[20];
+		unsigned short parentNo;
+		unsigned short nextNo;
+		unsigned char type;
+		unsigned short ikBoneNo;
+		XMFLOAT3 pos;
+	};
+#pragma pack()
+	std::vector<PMDBone> pmdBones(boneNum);
+	fread(pmdBones.data(), sizeof(PMDBone), boneNum, fp);
+
 	fclose(fp);
+
 
 	return result;
 }
