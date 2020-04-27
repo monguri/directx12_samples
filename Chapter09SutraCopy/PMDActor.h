@@ -79,7 +79,7 @@ private:
 	D3D12_INDEX_BUFFER_VIEW _ibView;
 
 	HRESULT CreateTransformConstantBuffer();
-	HRESULT LoadPMDFileAndCreateGeometryBuffers(const std::string& path);
+	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
 	HRESULT CreateMaterialBuffers();
 };
 

@@ -31,7 +31,7 @@ private:
 	};
 
 	Transform _transform;
-	Transform* _mappedTransform = nullptr;
+	DirectX::XMMATRIX* _mappedMatrices = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _transformDescHeap = nullptr;
 
 	// バッファは描画に用いるので保持し続ける必要がある
@@ -91,7 +91,7 @@ private:
 	std::vector<DirectX::XMMATRIX> _boneMatrices;
 
 	HRESULT CreateTransformConstantBuffer();
-	HRESULT LoadPMDFileAndCreateGeometryBuffers(const std::string& path);
+	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
 	HRESULT CreateMaterialBuffers();
 };
 

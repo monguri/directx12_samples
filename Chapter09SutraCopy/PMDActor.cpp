@@ -31,14 +31,14 @@ namespace
 PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& modelPath)
 : _dx12(dx12), _renderer(renderer)
 {
-	HRESULT result = CreateTransformConstantBuffer();
+	HRESULT result = LoadPMDFileAndCreateMeshBuffers(modelPath);
 	if (FAILED(result))
 	{
 		assert(false);
 		return;
 	}
 
-	result = LoadPMDFileAndCreateGeometryBuffers(modelPath);
+	result = CreateTransformConstantBuffer();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -116,7 +116,7 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 	return result;
 }
 
-HRESULT PMDActor::LoadPMDFileAndCreateGeometryBuffers(const std::string& path)
+HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 {
 	// PMDÉwÉbÉ_äiî[ÉfÅ[É^
 	struct PMDHeader

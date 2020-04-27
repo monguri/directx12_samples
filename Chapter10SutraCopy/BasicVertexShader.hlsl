@@ -11,6 +11,7 @@ cbuffer SceneData : register(b0)
 cbuffer Transform : register(b1)
 {
 	matrix world;
+	matrix bones[256];
 }
 
 Output BasicVS(
@@ -22,6 +23,7 @@ min16uint2 weight : WEIGHT
 )
 {
 	Output output;
+	pos = mul(bones[boneno[0]], pos);
 	pos = mul(world, pos);
 	output.svpos = mul(mul(proj, view), pos);
 	normal.w = 0;
