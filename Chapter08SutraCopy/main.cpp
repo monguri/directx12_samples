@@ -516,15 +516,14 @@ int main()
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 
-	// SRGBテクスチャ対応
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
 	std::vector<ID3D12Resource*> _backBuffers(swapchainDesc.BufferCount);
 	for (UINT i = 0; i < swapchainDesc.BufferCount; ++i)
 	{
 		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&_backBuffers[i]));
+		rtvDesc.Format = _backBuffers[i]->GetDesc().Format;
 		_dev->CreateRenderTargetView(_backBuffers[i], &rtvDesc, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
