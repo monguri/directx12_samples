@@ -25,7 +25,7 @@ min16uint2 weight : WEIGHT
 	Output output;
 	float w = (float)weight / 100.0f;
 
-	matrix bm = bones[boneno[0]] * w + bones[boneno[0]] * (1.0f - w);
+	matrix bm = bones[boneno[0]] * w + bones[boneno[1]] * (1.0f - w);
 	pos = mul(bm, pos);
 	pos = mul(world, pos);
 	output.svpos = mul(mul(proj, view), pos);
