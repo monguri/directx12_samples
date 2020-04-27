@@ -90,8 +90,9 @@ private:
 
 	std::vector<DirectX::XMMATRIX> _boneMatrices;
 
-	HRESULT CreateTransformConstantBuffer();
 	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
+	void RecursiveMatrixMultiply(const BoneNode& node, const DirectX::XMMATRIX& mat);
+	HRESULT CreateTransformConstantBuffer();
 	HRESULT CreateMaterialBuffers();
 };
 

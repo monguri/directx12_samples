@@ -360,6 +360,17 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	return result;
 }
 
+void PMDActor::RecursiveMatrixMultiply(const BoneNode& node, const XMMATRIX& mat)
+{
+	_boneMatrices[node.boneIdx] *= mat;
+
+	for (const BoneNode* child : node.children)
+	{
+		assert(child != nullptr);
+		RecursiveMatrixMultiply(*child, mat);
+	}
+}
+
 HRESULT PMDActor::CreateTransformConstantBuffer()
 {
 	// 定数バッファ作成
@@ -391,7 +402,9 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 	// TODO:曲げテスト
 	const BoneNode& leftArm = _boneNodeTable["左腕"];
 	const XMFLOAT3& pos = leftArm.startPos;
-	_boneMatrices[leftArm.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+	const XMMATRIX& mat = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	RecursiveMatrixMultiply(leftArm, mat);
 
 	//TODO: Transform構造体がもう不要なようだが。。。
 	_mappedMatrices[0] = XMMatrixIdentity();
