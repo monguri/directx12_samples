@@ -367,7 +367,7 @@ void PMDActor::RecursiveMatrixMultiply(const BoneNode& node, const XMMATRIX& mat
 	for (const BoneNode* child : node.children)
 	{
 		assert(child != nullptr);
-		RecursiveMatrixMultiply(*child, mat);
+		RecursiveMatrixMultiply(*child, _boneMatrices[node.boneIdx]);
 	}
 }
 
@@ -400,11 +400,17 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 	}
 
 	// TODO:曲げテスト
-	const BoneNode& leftArm = _boneNodeTable["左腕"];
-	const XMFLOAT3& pos = leftArm.startPos;
-	const XMMATRIX& mat = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+	const BoneNode& armNode = _boneNodeTable["左腕"];
+	const XMFLOAT3& armpos = armNode.startPos;
+	const XMMATRIX& armMat = XMMatrixTranslation(-armpos.x, -armpos.y, -armpos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(armpos.x, armpos.y, armpos.z);
+	_boneMatrices[armNode.boneIdx] = armMat;
 
-	RecursiveMatrixMultiply(leftArm, mat);
+	const BoneNode& elbowNode = _boneNodeTable["左ひじ"];
+	const XMFLOAT3& elbowpos = elbowNode.startPos;
+	const XMMATRIX& elbowMat = XMMatrixTranslation(-elbowpos.x, -elbowpos.y, -elbowpos.z) * XMMatrixRotationZ(-XM_PIDIV2) * XMMatrixTranslation(elbowpos.x, elbowpos.y, elbowpos.z);
+	_boneMatrices[elbowNode.boneIdx] = elbowMat;
+
+	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 
 	//TODO: Transform構造体がもう不要なようだが。。。
 	_mappedMatrices[0] = XMMatrixIdentity();
