@@ -60,66 +60,6 @@ void* PMDActor::Transform::operator new(size_t size)
 	return _aligned_malloc(size, 16);
 }
 
-HRESULT PMDActor::CreateTransformConstantBuffer()
-{
-	// 定数バッファ作成
-
-	size_t buffSize = sizeof(XMMATRIX) * (1 + _boneMatrices.size()); // 1はワールド行列の分
-	buffSize = (buffSize + 0xff) & ~0xff;
-
-	HRESULT result = _dx12.Device()->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(buffSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(_transformBuff.ReleaseAndGetAddressOf())
-	);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	result = _transformBuff->Map(0, nullptr, (void**)&_mappedMatrices);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	//TODO: Transform構造体がもう不要なようだが。。。
-	_mappedMatrices[0] = XMMatrixIdentity();
-	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
-
-	// ディスクリプタヒープとCBV作成
-	D3D12_DESCRIPTOR_HEAP_DESC transformDescHeapDesc = {};
-	transformDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	transformDescHeapDesc.NodeMask = 0;
-	transformDescHeapDesc.NumDescriptors = 1;
-	transformDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-	result = _dx12.Device()->CreateDescriptorHeap(&transformDescHeapDesc, IID_PPV_ARGS(_transformDescHeap.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE transfomrHeapHandle(_transformDescHeap->GetCPUDescriptorHandleForHeapStart());
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _transformBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_transformBuff->GetDesc().Width;
-
-	_dx12.Device()->CreateConstantBufferView(
-		&cbvDesc,
-		transfomrHeapHandle
-	);
-
-	return result;
-}
-
 HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 {
 	// PMDヘッダ格納データ
@@ -420,6 +360,71 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	return result;
 }
 
+HRESULT PMDActor::CreateTransformConstantBuffer()
+{
+	// 定数バッファ作成
+
+	size_t buffSize = sizeof(XMMATRIX) * (1 + _boneMatrices.size()); // 1はワールド行列の分
+	buffSize = (buffSize + 0xff) & ~0xff;
+
+	HRESULT result = _dx12.Device()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(buffSize),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_transformBuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	result = _transformBuff->Map(0, nullptr, (void**)&_mappedMatrices);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	// TODO:曲げテスト
+	const BoneNode& leftArm = _boneNodeTable["左腕"];
+	const XMFLOAT3& pos = leftArm.startPos;
+	_boneMatrices[leftArm.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	//TODO: Transform構造体がもう不要なようだが。。。
+	_mappedMatrices[0] = XMMatrixIdentity();
+	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
+
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC transformDescHeapDesc = {};
+	transformDescHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	transformDescHeapDesc.NodeMask = 0;
+	transformDescHeapDesc.NumDescriptors = 1;
+	transformDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	result = _dx12.Device()->CreateDescriptorHeap(&transformDescHeapDesc, IID_PPV_ARGS(_transformDescHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE transfomrHeapHandle(_transformDescHeap->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _transformBuff->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_transformBuff->GetDesc().Width;
+
+	_dx12.Device()->CreateConstantBufferView(
+		&cbvDesc,
+		transfomrHeapHandle
+	);
+
+	return result;
+}
+
 HRESULT PMDActor::CreateMaterialBuffers()
 {
 	// マテリアルバッファを作成
@@ -530,8 +535,10 @@ HRESULT PMDActor::CreateMaterialBuffers()
 
 void PMDActor::Draw()
 {
+#if 0 // スキニング計算を簡単にするために一旦回転を止める
 	_angle += 0.005f;
 	_mappedMatrices[0] = XMMatrixRotationY(_angle);
+#endif
 
 	_dx12.CommandList()->IASetVertexBuffers(0, 1, &_vbView);
 	_dx12.CommandList()->IASetIndexBuffer(&_ibView);
