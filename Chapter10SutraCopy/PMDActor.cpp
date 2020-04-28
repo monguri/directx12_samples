@@ -360,6 +360,35 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	return result;
 }
 
+HRESULT PMDActor::LoadVMDFile(const std::string& path)
+{
+	FILE* fp = nullptr;
+	errno_t error = fopen_s(&fp, path.c_str(), "rb");
+	fseek(fp, 50, SEEK_SET);
+
+	unsigned int keyframeNum = 0;
+	fread(&keyframeNum, sizeof(keyframeNum), 1, fp);
+
+	struct VMDKeyFrame {
+		char boneName[15]; // ボーン名
+		unsigned int frameNo; // フレーム番号
+		XMFLOAT3 location; //位置
+		XMFLOAT4 quaternion; // クオータニオン
+		unsigned char bezier[64]; // [4][4][4] ベジェ補間パラメータ
+	};
+
+	// ボーン名の後にアラインメントでパディングが入るのでループでそれを回避しつつ読む
+	std::vector<VMDKeyFrame> keyframes(keyframeNum);
+	for (VMDKeyFrame& keyframe : keyframes)
+	{
+		fread(keyframe.boneName, sizeof(keyframe.boneName), 1, fp);
+		fread(&keyframe.frameNo, sizeof(keyframe.frameNo) + sizeof(keyframe.location) + sizeof(keyframe.quaternion) + sizeof(keyframe.bezier), 1, fp);
+	}
+
+	fclose(fp);
+	return S_OK;
+}
+
 void PMDActor::RecursiveMatrixMultiply(const BoneNode& node, const XMMATRIX& mat)
 {
 	_boneMatrices[node.boneIdx] *= mat;

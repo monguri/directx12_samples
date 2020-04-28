@@ -57,6 +57,7 @@ bool Application::Init()
 	//std::string strModelPath = "model/‰‰¹ƒ~ƒNmetal.pmd";
 	//std::string strModelPath = "model/„‰¹ƒ‹ƒJ.pmd";
 	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer, strModelPath));
+	_pmdActor->LoadVMDFile("motion/pose.vmd");
 
 	return true;
 }

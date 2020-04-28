@@ -10,6 +10,7 @@ class PMDActor
 {
 public:
 	PMDActor(class Dx12Wrapper& dx12, class PMDRenderer& renderer, const std::string& modelPath);
+	HRESULT LoadVMDFile(const std::string& path);
 	void Draw();
 
 private:
