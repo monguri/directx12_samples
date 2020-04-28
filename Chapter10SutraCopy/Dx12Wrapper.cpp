@@ -444,8 +444,8 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 {
 	// 定数バッファ用データ
 	// 定数バッファ作成
-	XMFLOAT3 eye(0, 15, -15);
-	XMFLOAT3 target(0, 15, 0);
+	XMFLOAT3 eye(0, 15, -30);
+	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 	const SIZE& winSize = Application::Instance().GetWindowSize();

@@ -403,6 +403,18 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		_motionData[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
 	}
 
+	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
+	{
+		const BoneNode& node = _boneNodeTable[bonemotion.first];
+		const XMFLOAT3& pos = node.startPos;
+		//TODO: とりあえず0フレーム目のポーズのみ使う
+		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+	}
+
+	// TODO:とりあえずセンターは動かない前提で単位行列
+	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
+	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
+
 	return S_OK;
 }
 
@@ -445,22 +457,8 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 		return result;
 	}
 
-	// TODO:曲げテスト
-	const BoneNode& armNode = _boneNodeTable["左腕"];
-	const XMFLOAT3& armpos = armNode.startPos;
-	const XMMATRIX& armMat = XMMatrixTranslation(-armpos.x, -armpos.y, -armpos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(armpos.x, armpos.y, armpos.z);
-	_boneMatrices[armNode.boneIdx] = armMat;
-
-	const BoneNode& elbowNode = _boneNodeTable["左ひじ"];
-	const XMFLOAT3& elbowpos = elbowNode.startPos;
-	const XMMATRIX& elbowMat = XMMatrixTranslation(-elbowpos.x, -elbowpos.y, -elbowpos.z) * XMMatrixRotationZ(-XM_PIDIV2) * XMMatrixTranslation(elbowpos.x, elbowpos.y, elbowpos.z);
-	_boneMatrices[elbowNode.boneIdx] = elbowMat;
-
-	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
-
 	//TODO: Transform構造体がもう不要なようだが。。。
 	_mappedMatrices[0] = XMMatrixIdentity();
-	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC transformDescHeapDesc = {};
