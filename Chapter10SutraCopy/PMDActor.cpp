@@ -1,6 +1,7 @@
 #include "PMDActor.h"
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
+#include <unordered_map>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -386,6 +387,22 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 	}
 
 	fclose(fp);
+
+	struct KeyFrame {
+		unsigned int frameNo;
+		XMVECTOR quaternion;
+
+		KeyFrame(unsigned int fno, const XMVECTOR& q) : frameNo(fno), quaternion(q) {}
+	};
+
+	std::unordered_map<std::string, std::vector<KeyFrame>> _motionData;
+
+	// VMDKeyFrame‚©‚çKeyFrame‚É‚Â‚ß‚©‚¦
+	for (const VMDKeyFrame& keyframe : keyframes)
+	{
+		_motionData[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
+	}
+
 	return S_OK;
 }
 
