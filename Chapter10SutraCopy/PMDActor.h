@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <wrl.h>
 #include <DirectXMath.h>
 #include <d3d12.h>
@@ -11,6 +12,8 @@ class PMDActor
 public:
 	PMDActor(class Dx12Wrapper& dx12, class PMDRenderer& renderer, const std::string& modelPath);
 	HRESULT LoadVMDFile(const std::string& path);
+	void PlayAnimation();
+	void Update();
 	void Draw();
 
 private:
@@ -91,8 +94,19 @@ private:
 
 	std::vector<DirectX::XMMATRIX> _boneMatrices;
 
+	struct KeyFrame {
+		unsigned int frameNo;
+		DirectX::XMVECTOR quaternion;
+
+		KeyFrame(unsigned int fno, const DirectX::XMVECTOR& q) : frameNo(fno), quaternion(q) {}
+	};
+
+	std::unordered_map<std::string, std::vector<KeyFrame>> _motionData;
+	DWORD _startTime = 0;
+
 	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
 	void RecursiveMatrixMultiply(const BoneNode& node, const DirectX::XMMATRIX& mat);
+	void MotionUpdate();
 	HRESULT CreateTransformConstantBuffer();
 	HRESULT CreateMaterialBuffers();
 };

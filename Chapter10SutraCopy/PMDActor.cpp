@@ -1,10 +1,11 @@
 #include "PMDActor.h"
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
-#include <unordered_map>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
+
+#pragma comment(lib, "winmm.lib")
 
 namespace
 {
@@ -388,15 +389,6 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 
 	fclose(fp);
 
-	struct KeyFrame {
-		unsigned int frameNo;
-		XMVECTOR quaternion;
-
-		KeyFrame(unsigned int fno, const XMVECTOR& q) : frameNo(fno), quaternion(q) {}
-	};
-
-	std::unordered_map<std::string, std::vector<KeyFrame>> _motionData;
-
 	// VMDKeyFrameからKeyFrameにつめかえ
 	for (const VMDKeyFrame& keyframe : keyframes)
 	{
@@ -427,6 +419,11 @@ void PMDActor::RecursiveMatrixMultiply(const BoneNode& node, const XMMATRIX& mat
 		assert(child != nullptr);
 		RecursiveMatrixMultiply(*child, _boneMatrices[node.boneIdx]);
 	}
+}
+
+void PMDActor::PlayAnimation()
+{
+	_startTime = timeGetTime();
 }
 
 HRESULT PMDActor::CreateTransformConstantBuffer()
@@ -596,13 +593,55 @@ HRESULT PMDActor::CreateMaterialBuffers()
 	return result;
 }
 
-void PMDActor::Draw()
+void PMDActor::Update()
 {
 #if 0 // スキニング計算を簡単にするために一旦回転を止める
 	_angle += 0.005f;
 	_mappedMatrices[0] = XMMatrixRotationY(_angle);
 #endif
+	MotionUpdate();
+}
 
+void PMDActor::MotionUpdate()
+{
+	DWORD elapsedTime = timeGetTime() - _startTime;
+	unsigned int frameNo = (unsigned int)(30 * (elapsedTime / 1000.0f));
+
+	// 前フレームのポーズをクリア
+	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());
+
+	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
+	{
+		const BoneNode& node = _boneNodeTable[bonemotion.first];
+
+		const std::vector<KeyFrame>& keyframes = bonemotion.second;
+
+		auto rit = std::find_if(keyframes.begin(), keyframes.end(),
+			[frameNo](const KeyFrame& keyframe) {
+				return keyframe.frameNo == frameNo;
+			}
+		);
+
+		// 見つからなかった場合
+		if (rit == keyframes.end())
+		{
+			continue;
+		}
+		else
+		{
+			const XMFLOAT3& pos = node.startPos;
+			// キーフレームの情報で回転のみ使用する
+			_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(rit->quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+		}
+	}
+
+	// TODO:とりあえずセンターは動かない前提で単位行列
+	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
+	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
+}
+
+void PMDActor::Draw()
+{
 	_dx12.CommandList()->IASetVertexBuffers(0, 1, &_vbView);
 	_dx12.CommandList()->IASetIndexBuffer(&_ibView);
 

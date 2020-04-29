@@ -57,7 +57,11 @@ bool Application::Init()
 	//std::string strModelPath = "model/初音ミクmetal.pmd";
 	//std::string strModelPath = "model/巡音ルカ.pmd";
 	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer, strModelPath));
-	_pmdActor->LoadVMDFile("motion/pose.vmd");
+
+	//std::string strMotionPath = "motion/pose.vmd";
+	std::string strMotionPath = "motion/swing.vmd";
+	_pmdActor->LoadVMDFile(strMotionPath);
+	_pmdActor->PlayAnimation();
 
 	return true;
 }
@@ -83,6 +87,7 @@ void Application::Run()
 		_dx12->BeginDraw();
 		_pmdRenderer->PrepareDraw();
 		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
+		_pmdActor->Update();
 		_pmdActor->Draw();
 		_dx12->EndDraw();
 	}
