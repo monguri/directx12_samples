@@ -395,6 +395,17 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		_motionData[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
 	}
 
+	// VMDKeyFrameのキーフレームはフレーム番号順に入ってるとは限らないのでソート
+	for (auto& motion : _motionData) // TODO:std::pairのconst &や&だとコンパイルが通らないのでautoを使う
+	{
+		std::sort(motion.second.begin(), motion.second.end(),
+			[](const KeyFrame& lval, const KeyFrame& rval)
+			{
+				return lval.frameNo <= rval.frameNo;
+			}
+		);
+	}
+
 	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
 	{
 		const BoneNode& node = _boneNodeTable[bonemotion.first];

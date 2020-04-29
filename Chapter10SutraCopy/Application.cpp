@@ -59,7 +59,8 @@ bool Application::Init()
 	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer, strModelPath));
 
 	//std::string strMotionPath = "motion/pose.vmd";
-	std::string strMotionPath = "motion/swing.vmd";
+	//std::string strMotionPath = "motion/swing.vmd";
+	std::string strMotionPath = "motion/motion.vmd";
 	_pmdActor->LoadVMDFile(strMotionPath);
 	_pmdActor->PlayAnimation();
 
