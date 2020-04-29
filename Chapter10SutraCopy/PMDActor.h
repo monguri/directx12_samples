@@ -101,7 +101,7 @@ private:
 		KeyFrame(unsigned int fno, const DirectX::XMVECTOR& q) : frameNo(fno), quaternion(q) {}
 	};
 
-	std::unordered_map<std::string, std::vector<KeyFrame>> _motionData;
+	std::unordered_map<std::string, std::vector<KeyFrame>> _motiondata;
 	DWORD _startTime = 0;
 
 	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);

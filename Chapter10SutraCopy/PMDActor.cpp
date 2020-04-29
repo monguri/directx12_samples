@@ -392,11 +392,11 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 	// VMDKeyFrameからKeyFrameにつめかえ
 	for (const VMDKeyFrame& keyframe : keyframes)
 	{
-		_motionData[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
+		_motiondata[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
 	}
 
 	// VMDKeyFrameのキーフレームはフレーム番号順に入ってるとは限らないのでソート
-	for (auto& motion : _motionData) // TODO:std::pairのconst &や&だとコンパイルが通らないのでautoを使う
+	for (auto& motion : _motiondata) // TODO:std::pairのconst &や&だとコンパイルが通らないのでautoを使う
 	{
 		std::sort(motion.second.begin(), motion.second.end(),
 			[](const KeyFrame& lval, const KeyFrame& rval)
@@ -406,7 +406,7 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		);
 	}
 
-	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
+	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motiondata)
 	{
 		// VMDにあるキーフレーム情報のボーン名がPMDにあるとは限らないのであるときのみ処理をする
 		const auto& itBoneNode = _boneNodeTable.find(bonemotion.first);
@@ -628,7 +628,7 @@ void PMDActor::MotionUpdate()
 	// 前フレームのポーズをクリア
 	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());
 
-	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
+	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motiondata)
 	{
 		const BoneNode& node = _boneNodeTable[bonemotion.first];
 
