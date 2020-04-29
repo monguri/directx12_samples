@@ -358,6 +358,25 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	std::vector<PMDBone> pmdBones(boneNum);
 	fread(pmdBones.data(), sizeof(PMDBone), boneNum, fp);
 
+	uint16_t ikNum = 0;
+	fread(&ikNum, sizeof(ikNum), 1, fp);
+
+	// PMDBoneなどと違い、nodeIdxの要素数が固定されてないのでまとめてはロードできない
+	struct PMDIK
+	{
+		uint16_t boneIdx;
+		uint16_t targetIdx;
+		uint16_t iterations;
+		float limit;
+		std::vector<uint16_t> nodeIdxes;
+	};
+
+	std::vector<PMDIK> pmdIkData(ikNum);
+	for (PMDIK& ik : pmdIkData)
+	{
+		// TODO:実装
+	}
+
 	fclose(fp);
 
 	// ファイルにもつデータであれば親インデックスをもつのがデータが小さく
