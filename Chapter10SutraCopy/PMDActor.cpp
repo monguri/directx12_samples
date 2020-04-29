@@ -28,6 +28,41 @@ namespace
 		const std::string& folderPath = modelPath.substr(0, pathIndex + 1);
 		return folderPath + texPath;
 	}
+
+	float GetYFromXOnBezier(float x, const DirectX::XMFLOAT2& a, const DirectX::XMFLOAT2& b, uint8_t n = 12)
+	{
+		// 直線のときはy=x
+		if (a.x == a.y && b.x == b.y)
+		{
+			return x;
+		}
+
+		// 筆者開発の半分刻み法で与えられたxのときのx(t) = xを満たすtを求める
+
+		float t = x;
+		const float k0 = 1 + 3 * a.x - 3 * b.x;
+		const float k1 = 3 * b.x - 6 * a.x;
+		const float k2 = 3 * a.x;
+
+		// 終了判定に用いる誤差上限値
+		constexpr float epsilon = 0.0005f;
+		for (int i = 0; i < n; ++i)
+		{
+			float ft = k0 * t * t * t + k1 * t * t + k2 * t - x;
+			// 誤差上限値内におさまったので先に終了
+			if (ft <= epsilon && ft >= -epsilon)
+			{
+				break;
+			}
+
+			t -= ft * 0.5f;
+		}
+
+		// 求まった近似解tからy(t)を求める
+		float r = 1 - t;
+		// TODO:なぜこちらは1-tを利用する式で、上は利用しない式にしているのか？
+		return t * t * t + 3 * t * r * r * a.y + 3 * t * t * r * b.y;
+	}
 } // namespace
 
 PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& modelPath)
@@ -394,7 +429,12 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 	// VMDKeyFrameからKeyFrameにつめかえ。ついでに最大フレーム番号のキーフレームをVMDのモーションのフレーム数とする
 	for (const VMDKeyFrame& keyframe : keyframes)
 	{
-		_motiondata[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
+		_motiondata[keyframe.boneName].emplace_back(
+			keyframe.frameNo,
+			XMLoadFloat4(&keyframe.quaternion),
+			XMFLOAT2(keyframe.bezier[3] / 127.0f, keyframe.bezier[7] / 127.0f),
+			XMFLOAT2(keyframe.bezier[11] / 127.0f, keyframe.bezier[15] / 127.0f)
+		);
 		_duration = std::max<unsigned int>(_duration, keyframe.frameNo);
 	}
 
@@ -661,8 +701,9 @@ void PMDActor::MotionUpdate()
 		XMMATRIX rotation = XMMatrixRotationQuaternion(rit->quaternion);
 		if (it != keyframes.end())
 		{
-			// 次のキーフレームがあった場合は回転はlerp
+			// 筆者開発の半分刻み法で、初期値をlerpにとり、ベジエ曲線上の近似値を取得する
 			float t = (float)(frameNo - rit->frameNo) / (it->frameNo - rit->frameNo);
+			t = GetYFromXOnBezier(t, it->p1, it->p2, 12); // 筆者の経験上、12回程度で収束
 			rotation = XMMatrixRotationQuaternion(XMQuaternionSlerp(rit->quaternion, it->quaternion, t));
 		}
 

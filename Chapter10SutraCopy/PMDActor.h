@@ -97,8 +97,9 @@ private:
 	struct KeyFrame {
 		unsigned int frameNo;
 		DirectX::XMVECTOR quaternion;
+		DirectX::XMFLOAT2 p1, p2;
 
-		KeyFrame(unsigned int fno, const DirectX::XMVECTOR& q) : frameNo(fno), quaternion(q) {}
+		KeyFrame(unsigned int fno, const DirectX::XMVECTOR& q, const DirectX::XMFLOAT2& cp1, const DirectX::XMFLOAT2& cp2) : frameNo(fno), quaternion(q), p1(cp1), p2(cp2) {}
 	};
 
 	std::unordered_map<std::string, std::vector<KeyFrame>> _motiondata;
