@@ -636,7 +636,7 @@ void PMDActor::MotionUpdate()
 		{
 			// 次のキーフレームがあった場合は回転はlerp
 			float t = (float)(frameNo - rit->frameNo) / (it->frameNo - rit->frameNo);
-			rotation = (1.0f - t) * rotation + t * XMMatrixRotationQuaternion(it->quaternion);
+			rotation = XMMatrixRotationQuaternion(XMQuaternionSlerp(rit->quaternion, it->quaternion, t));
 		}
 
 		const XMFLOAT3& pos = node.startPos;
