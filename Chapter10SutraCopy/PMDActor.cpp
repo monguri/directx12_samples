@@ -616,23 +616,21 @@ void PMDActor::MotionUpdate()
 
 		const std::vector<KeyFrame>& keyframes = bonemotion.second;
 
-		auto rit = std::find_if(keyframes.begin(), keyframes.end(),
+		auto rit = std::find_if(keyframes.rbegin(), keyframes.rend(),
 			[frameNo](const KeyFrame& keyframe) {
-				return keyframe.frameNo == frameNo;
+				return keyframe.frameNo <= frameNo;
 			}
 		);
 
 		// 見つからなかった場合
-		if (rit == keyframes.end())
+		if (rit == keyframes.rend())
 		{
 			continue;
 		}
-		else
-		{
-			const XMFLOAT3& pos = node.startPos;
-			// キーフレームの情報で回転のみ使用する
-			_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(rit->quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
-		}
+
+		const XMFLOAT3& pos = node.startPos;
+		// キーフレームの情報で回転のみ使用する
+		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(rit->quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
 	// TODO:とりあえずセンターは動かない前提で単位行列
