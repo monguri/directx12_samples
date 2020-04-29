@@ -389,10 +389,13 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 
 	fclose(fp);
 
-	// VMDKeyFrameからKeyFrameにつめかえ
+	_duration = 0;
+
+	// VMDKeyFrameからKeyFrameにつめかえ。ついでに最大フレーム番号のキーフレームをVMDのモーションのフレーム数とする
 	for (const VMDKeyFrame& keyframe : keyframes)
 	{
 		_motiondata[keyframe.boneName].emplace_back(keyframe.frameNo, XMLoadFloat4(&keyframe.quaternion));
+		_duration = std::max<unsigned int>(_duration, keyframe.frameNo);
 	}
 
 	// VMDKeyFrameのキーフレームはフレーム番号順に入ってるとは限らないのでソート
@@ -624,6 +627,12 @@ void PMDActor::MotionUpdate()
 {
 	DWORD elapsedTime = timeGetTime() - _startTime;
 	unsigned int frameNo = (unsigned int)(30 * (elapsedTime / 1000.0f));
+	// ループ
+	if (frameNo > _duration)
+	{
+		_startTime = timeGetTime();
+		frameNo = 0;
+	}
 
 	// 前フレームのポーズをクリア
 	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());

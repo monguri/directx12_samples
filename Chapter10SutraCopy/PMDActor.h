@@ -103,6 +103,7 @@ private:
 
 	std::unordered_map<std::string, std::vector<KeyFrame>> _motiondata;
 	DWORD _startTime = 0;
+	unsigned int _duration = 0;
 
 	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
 	void RecursiveMatrixMultiply(const BoneNode& node, const DirectX::XMMATRIX& mat);
