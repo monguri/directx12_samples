@@ -408,13 +408,20 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 
 	for (const std::pair<std::string, std::vector<KeyFrame>>& bonemotion : _motionData)
 	{
-		const BoneNode& node = _boneNodeTable[bonemotion.first];
+		// VMDにあるキーフレーム情報のボーン名がPMDにあるとは限らないのであるときのみ処理をする
+		const auto& itBoneNode = _boneNodeTable.find(bonemotion.first);
+		if (itBoneNode == _boneNodeTable.end())
+		{
+			continue;
+		}
+
+		const BoneNode&	node = itBoneNode->second;
 		const XMFLOAT3& pos = node.startPos;
-		//TODO: とりあえず0フレーム目のポーズのみ使う
+		//まずは0フレーム目のポーズのみ使う
 		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
-	// TODO:とりあえずセンターは動かない前提で単位行列
+	// センターは動かない前提で単位行列
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 
@@ -655,7 +662,7 @@ void PMDActor::MotionUpdate()
 		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * rotation * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
-	// TODO:とりあえずセンターは動かない前提で単位行列
+	// センターは動かない前提で単位行列
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 }
