@@ -628,9 +628,20 @@ void PMDActor::MotionUpdate()
 			continue;
 		}
 
+		// 次のキーフレーム
+		auto it = rit.base();
+
+		XMMATRIX rotation = XMMatrixRotationQuaternion(rit->quaternion);
+		if (it != keyframes.end())
+		{
+			// 次のキーフレームがあった場合は回転はlerp
+			float t = (float)(frameNo - rit->frameNo) / (it->frameNo - rit->frameNo);
+			rotation = (1.0f - t) * rotation + t * XMMatrixRotationQuaternion(it->quaternion);
+		}
+
 		const XMFLOAT3& pos = node.startPos;
 		// キーフレームの情報で回転のみ使用する
-		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(rit->quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * rotation * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
 	// TODO:とりあえずセンターは動かない前提で単位行列
