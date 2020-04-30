@@ -366,15 +366,27 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	{
 		uint16_t boneIdx;
 		uint16_t targetIdx;
+		// uint8_ chainLen; // アラインメントの問題が出る
 		uint16_t iterations;
 		float limit;
-		std::vector<uint16_t> nodeIdxes;
+		std::vector<uint16_t> nodeIdxes; // chainLenの要素数
 	};
 
 	std::vector<PMDIK> pmdIkData(ikNum);
 	for (PMDIK& ik : pmdIkData)
 	{
-		// TODO:実装
+		fread(&ik.boneIdx, sizeof(ik.boneIdx), 1, fp);
+		fread(&ik.targetIdx, sizeof(ik.targetIdx), 1, fp);
+		uint8_t chainLen = 0;
+		fread(&chainLen, sizeof(chainLen), 1, fp);
+		ik.nodeIdxes.resize(chainLen);
+		fread(&ik.iterations, sizeof(ik.iterations), 1, fp);
+		fread(&ik.limit, sizeof(ik.limit), 1, fp);
+		if (chainLen == 0)
+		{
+			continue;
+		}
+		fread(ik.nodeIdxes.data(), sizeof(ik.nodeIdxes[0]), chainLen, fp);
 	}
 
 	fclose(fp);
