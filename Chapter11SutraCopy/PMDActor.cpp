@@ -1,6 +1,7 @@
 #include "PMDActor.h"
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
+#include <sstream>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -424,6 +425,39 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 
 	_boneMatrices.resize(boneNum);
 	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());
+
+	// IKデバッグコード
+	{
+		const std::function<std::string(uint16_t)>& getNameFromIdx =
+		[&](uint16_t idx)->std::string
+		{
+			auto it = std::find_if(_boneNodeTable.begin(), _boneNodeTable.end(),
+				[idx](const std::pair<std::string, BoneNode>& obj)
+				{
+					return obj.second.boneIdx == idx;
+				}
+			);
+			if (it == _boneNodeTable.end())
+			{
+				return "";
+			}
+			else
+			{
+				return it->first;
+			}
+		};
+
+		for (const PMDIK& ik : pmdIkData)
+		{
+			std::ostringstream oss;
+			oss << "IKボーン番号=" << ik.boneIdx << ":" << getNameFromIdx(ik.boneIdx) << std::endl;
+			for (uint16_t nodeIdx : ik.nodeIdxes)
+			{
+				oss << "\tノードボーン=" << nodeIdx << ":" << getNameFromIdx(nodeIdx) << std::endl;
+			}
+			OutputDebugString(oss.str().c_str());
+		}
+	}
 
 	return result;
 }
