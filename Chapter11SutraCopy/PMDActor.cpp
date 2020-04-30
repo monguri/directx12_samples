@@ -64,6 +64,18 @@ namespace
 		// TODO:なぜこちらは1-tを利用する式で、上は利用しない式にしているのか？
 		return t * t * t + 3 * t * r * r * a.y + 3 * t * t * r * b.y;
 	}
+
+	enum class BoneType : uint32_t
+	{
+		Rotation,
+		RotAndMove,
+		IK,
+		Undefined,
+		IKChild,
+		RotationChild,
+		IKDestination,
+		Invisible,
+	};
 } // namespace
 
 PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& modelPath)
@@ -362,19 +374,8 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	uint16_t ikNum = 0;
 	fread(&ikNum, sizeof(ikNum), 1, fp);
 
-	// PMDBoneなどと違い、nodeIdxの要素数が固定されてないのでまとめてはロードできない
-	struct PMDIK
-	{
-		uint16_t boneIdx;
-		uint16_t targetIdx;
-		// uint8_ chainLen; // アラインメントの問題が出る
-		uint16_t iterations;
-		float limit;
-		std::vector<uint16_t> nodeIdxes; // chainLenの要素数
-	};
-
-	std::vector<PMDIK> pmdIkData(ikNum);
-	for (PMDIK& ik : pmdIkData)
+	_ikData.resize(ikNum);
+	for (PMDIK& ik : _ikData)
 	{
 		fread(&ik.boneIdx, sizeof(ik.boneIdx), 1, fp);
 		fread(&ik.targetIdx, sizeof(ik.targetIdx), 1, fp);
@@ -398,6 +399,8 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 
 	// 作業用
 	std::vector<std::string> boneNames(boneNum);
+	_boneNameArray.resize(boneNum);
+	_boneNodeAddressArray.resize(boneNum);
 
 	// ボーンノードマップ作成
 	for (unsigned short idx = 0; idx < pmdBones.size(); idx++)
@@ -408,6 +411,9 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 		BoneNode& node = _boneNodeTable[pb.boneName];
 		node.boneIdx = idx;
 		node.startPos = pb.pos;
+
+		_boneNameArray[idx] = pb.boneName;
+		_boneNodeAddressArray[idx] = &node;
 	}
 
 	// ボーンノード同士の親子関係の構築
@@ -447,7 +453,7 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 			}
 		};
 
-		for (const PMDIK& ik : pmdIkData)
+		for (const PMDIK& ik : _ikData)
 		{
 			std::ostringstream oss;
 			oss << "IKボーン番号=" << ik.boneIdx << ":" << getNameFromIdx(ik.boneIdx) << std::endl;
@@ -497,6 +503,7 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		_motiondata[keyframe.boneName].emplace_back(
 			keyframe.frameNo,
 			XMLoadFloat4(&keyframe.quaternion),
+			keyframe.location,
 			XMFLOAT2(keyframe.bezier[3] / 127.0f, keyframe.bezier[7] / 127.0f),
 			XMFLOAT2(keyframe.bezier[11] / 127.0f, keyframe.bezier[15] / 127.0f)
 		);
@@ -780,6 +787,41 @@ void PMDActor::MotionUpdate()
 	// センターは動かない前提で単位行列
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
+}
+
+void PMDActor::SolveCCDIK(const struct PMDIK& ik)
+{
+}
+
+void PMDActor::SolveCosineIK(const struct PMDIK& ik)
+{
+}
+
+void PMDActor::SolveLookAt(const struct PMDIK& ik)
+{
+}
+
+void PMDActor::IKSolve()
+{
+	for (const PMDIK& ik : _ikData)
+	{
+		size_t childrenNodesCount = ik.nodeIdxes.size();
+		switch (childrenNodesCount)
+		{
+			case 0:
+				assert(false);
+				break;
+			case 1:
+				SolveLookAt(ik);
+				break;
+			case 2:
+				SolveCosineIK(ik);
+				break;
+			default:
+				SolveCCDIK(ik);
+				break;
+		}
+	}
 }
 
 void PMDActor::Draw()
