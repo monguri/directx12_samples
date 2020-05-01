@@ -94,7 +94,7 @@ private:
 
 	std::map<std::string, BoneNode> _boneNodeTable;
 	std::vector<std::string> _boneNameArray;
-	std::vector<BoneNode*> _boneNodeAddressArray;
+	std::vector<BoneNode*> _boneNodeAddressArray; // 本ではポインタにしてるけど参照でもいけるな
 
 	std::vector<DirectX::XMMATRIX> _boneMatrices;
 

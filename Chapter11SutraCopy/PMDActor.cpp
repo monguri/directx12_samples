@@ -30,6 +30,48 @@ namespace
 		return folderPath + texPath;
 	}
 
+	// 現在のXYZ座標軸をlookatの方向をZ'軸にするような回転行列を求める。
+	// つまり、現在のZ軸をlookatの方向に回転させるような回転行列を求める。
+	// それだけだとX'軸、Y'軸の方向が定まらないので、up、right方向を渡しておき、それに基づいて
+	// X'軸、Y'軸を決める
+	XMMATRIX LookAtMatrix(const XMVECTOR& lookat, const XMFLOAT3& up, const XMFLOAT3& right)
+	{
+		XMVECTOR vz = XMVector3Normalize(lookat);
+		XMVECTOR vy = XMVector3Normalize(XMLoadFloat3(&up));
+
+		XMVECTOR vx;
+		// lookatとupが並行なら、right基準で決める
+		// そうでなければup基準で決める
+		if (abs(XMVector3Dot(vy, vz).m128_f32[0]) == 1.0f)
+		{
+			vx = XMVector3Normalize(XMLoadFloat3(&right));
+			vy = XMVector3Normalize(XMVector3Cross(vz, vx));
+			vx = XMVector3Normalize(XMVector3Cross(vy, vz));
+		}
+		else
+		{
+			vx = XMVector3Normalize(XMVector3Cross(vy, vz));
+			vy = XMVector3Normalize(XMVector3Cross(vz, vx));
+		}
+
+		XMMATRIX ret = XMMatrixIdentity(); // 平行移動部分は0にしておく
+		ret.r[0] = vx;
+		ret.r[1] = vy;
+		ret.r[2] = vz;
+		return ret;
+	}
+
+	// originの方向をlookatの方向に向かせるような回転行列を求める
+	// 残り2つの軸の方向を決める基準とするためにup、rightを渡す。
+	XMMATRIX LookAtMatrix(const XMVECTOR& origin, const XMVECTOR& lookat, const XMFLOAT3& up, const XMFLOAT3& right)
+	{
+		return
+			// originを現在のZ軸の方向に向かせるような回転
+			XMMatrixTranspose(LookAtMatrix(origin, up, right))
+			// 現在のZ軸をlookatの方向に向かせるような回転
+			* LookAtMatrix(lookat, up, right);
+	}
+
 	float GetYFromXOnBezier(float x, const DirectX::XMFLOAT2& a, const DirectX::XMFLOAT2& b, uint8_t n = 12)
 	{
 		// 直線のときはy=x
@@ -789,15 +831,36 @@ void PMDActor::MotionUpdate()
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 }
 
-void PMDActor::SolveCCDIK(const struct PMDIK& ik)
+void PMDActor::SolveLookAt(const struct PMDIK& ik)
 {
+	uint16_t rootNodeIdx = ik.nodeIdxes[0];
+	uint16_t targetNodeIdx = ik.boneIdx;
+
+	const BoneNode* rootNode = _boneNodeAddressArray[rootNodeIdx];
+	const BoneNode* targetNode = _boneNodeAddressArray[targetNodeIdx];
+
+	const XMVECTOR& opos1 = XMLoadFloat3(&rootNode->startPos);
+	const XMVECTOR& tpos1 = XMLoadFloat3(&targetNode->startPos);
+
+	const XMVECTOR& opos2 = XMVector3Transform(opos1, _boneMatrices[rootNodeIdx]);
+	const XMVECTOR& tpos2 = XMVector3Transform(tpos1, _boneMatrices[targetNodeIdx]);
+
+	XMVECTOR originVec = XMVectorSubtract(tpos1, opos1);
+	XMVECTOR targetVec = XMVectorSubtract(tpos2, opos2);
+	originVec = XMVector3Normalize(originVec);
+	targetVec = XMVector3Normalize(targetVec);
+
+	_boneMatrices[rootNodeIdx] =
+		XMMatrixTranslationFromVector(-opos2)
+		* LookAtMatrix(originVec, targetVec, XMFLOAT3(0, 1, 0), XMFLOAT3(1, 0, 0))
+		* XMMatrixTranslationFromVector(opos2);
 }
 
 void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 {
 }
 
-void PMDActor::SolveLookAt(const struct PMDIK& ik)
+void PMDActor::SolveCCDIK(const struct PMDIK& ik)
 {
 }
 
