@@ -458,6 +458,9 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 		BoneNode& node = _boneNodeTable[pb.boneName];
 		node.boneIdx = idx;
 		node.startPos = pb.pos;
+		node.boneType = pb.type;
+		node.parentBone = pb.parentNo;
+		node.ikParentBone = pb.ikBoneNo;
 
 		_boneNameArray[idx] = pb.boneName;
 		_boneNodeAddressArray[idx] = &node;
@@ -585,10 +588,12 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		const BoneNode&	node = itBoneNode->second;
 		const XMFLOAT3& pos = node.startPos;
 		//まずは0フレーム目のポーズのみ使う
+		// ここで求めているのはローカル行列である
 		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
 	// センターは動かない前提で単位行列
+	// これによって_boneMatrices[]はモデル行列になる
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 
@@ -833,10 +838,12 @@ void PMDActor::MotionUpdate()
 
 		const XMFLOAT3& pos = node.startPos;
 		// キーフレームの情報で回転のみ使用する
+		// ここで求めているのはローカル行列である
 		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * rotation * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
 	// センターは動かない前提で単位行列
+	// これによって_boneMatrices[]はモデル行列になる
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 }
@@ -877,7 +884,7 @@ void PMDActor::SolveLookAt(const struct PMDIK& ik)
 
 void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 {
-	// IK構成点の位置の保持
+	// IK構成点の位置を保持するワークデータ
 	std::vector<XMVECTOR> positions;
 	// バインドポーズ時の3点の間の2距離の保持
 	std::array<float, 2> edgeLens;
@@ -890,6 +897,8 @@ void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 	// 末端、エフェクタ
 	uint16_t endNodeIdx = ik.targetIdx;
 	const BoneNode* endNode = _boneNodeAddressArray[endNodeIdx];
+
+	// positionsにバインドポーズ位置を入れる
 	// nodeIdxesは子供から親の順でデータが入っているのに注意
 	positions.emplace_back(XMLoadFloat3(&endNode->startPos));
 
@@ -907,7 +916,7 @@ void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 	edgeLens[0] = XMVector3Length(XMVectorSubtract(positions[1], positions[0])).m128_f32[0];
 	edgeLens[1] = XMVector3Length(XMVectorSubtract(positions[2], positions[1])).m128_f32[0];
 
-	// ルートは現在のアニメーションの位置に修正
+	// positionsにアニメーション位置を入れる
 	// nodeIdxesは逆順なのでルートがnodeIdxes[1]なのに注意
 	positions[0] = XMVector3Transform(positions[0], _boneMatrices[ik.nodeIdxes[1]]);
 	// positions[1]はIK計算で決めるのでアニメーション位置は計算しない
@@ -950,16 +959,111 @@ void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 	// ルート
 	_boneMatrices[ik.nodeIdxes[1]] *= XMMatrixTranslationFromVector(-positions[0]) * XMMatrixRotationAxis(axis, theta1) * XMMatrixTranslationFromVector(positions[0]);
 	// 真ん中
+	// TODO:この乗算って本当にモデル行列の計算になっているのか？
 	_boneMatrices[ik.nodeIdxes[0]] = XMMatrixTranslationFromVector(-positions[1]) * XMMatrixRotationAxis(axis, theta2) * XMMatrixTranslationFromVector(positions[1]) * _boneMatrices[ik.nodeIdxes[1]];
 	// エフェクタ
 	//TODO:この計算式が不明
 	_boneMatrices[endNodeIdx] = _boneMatrices[ik.nodeIdxes[0]];
 }
 
+// 収束判定に使用する誤差閾値
+constexpr float epsilon = 0.0005f;
+
 void PMDActor::SolveCCDIK(const struct PMDIK& ik)
 {
-}
+	// ターゲット
+	uint16_t targetNodeIdx = ik.boneIdx;
+	const BoneNode* targetBoneNode = _boneNodeAddressArray[targetNodeIdx];
+	const XMVECTOR& targetOriginPos = XMLoadFloat3(&targetBoneNode->startPos);
 
+	const XMMATRIX& parentMat = _boneMatrices[_boneNodeAddressArray[targetNodeIdx]->ikParentBone];
+	XMVECTOR det;
+	const XMMATRIX& invParentMat = XMMatrixInverse(&det, parentMat);
+	// TODO:いきなりローカルな行列をモデル座標系でのstartPosに乗算してどうなるというのか？
+	const XMVECTOR& targetNextPos = XMVector3Transform(targetOriginPos, _boneMatrices[ik.boneIdx] * invParentMat);
+
+	// エフェクタのバインドポーズ位置。
+	XMVECTOR endPos = XMLoadFloat3(&_boneNodeAddressArray[ik.targetIdx]->startPos);
+
+	// IK対象のボーンの位置を保持するワークデータ（エフェクタ以外）
+	// 子から親の順に入っていることに注意
+	std::vector<XMVECTOR> bonePositions;
+
+	// bonePositionsにバインドポーズ位置を入れる
+	assert(ik.nodeIdxes.size() >= 3);
+	for (uint16_t cidx : ik.nodeIdxes)
+	{
+		const BoneNode* boneNode = _boneNodeAddressArray[cidx];
+		bonePositions.emplace_back(XMLoadFloat3(&boneNode->startPos));
+	}
+	assert(bonePositions.size() >= 3);
+	//TODO:なぜ本ではCCDIKの試行の初期値をバインドポーズではじめるのか？
+	// アニメーション位置からはじめた方が変化が最小になり、自然になるのでは？
+
+	// 回転行列の計算結果保持
+	std::vector<XMMATRIX> mats(bonePositions.size());
+	// 単位行列で初期化しておく
+	std::fill(mats.begin(), mats.end(), XMMatrixIdentity());
+
+	// 1フレームで回転させる角度の上限値
+	float ikLimit = ik.limit * XM_PI;
+
+	// 試行回数上限値までループ
+	for (int c = 0; c < ik.iterations; ++c)
+	{
+		// エフェクタとターゲット位置の差が閾値以下になったら試行回数上限値になる前に抜ける
+		if (XMVector3Length(XMVectorSubtract(endPos, targetNextPos)).m128_f32[0] <= epsilon)
+		{
+			break;
+		}
+
+		// 子から親の方向へのループ
+		for (int bidx = 0; bidx < bonePositions.size(); ++bidx)
+		{
+			const XMVECTOR& pos = bonePositions[bidx];
+			const XMVECTOR& vecToEnd = XMVector3Normalize(XMVectorSubtract(endPos, pos));
+			const XMVECTOR& vecToTarget = XMVector3Normalize(XMVectorSubtract(targetNextPos, pos));
+
+			// ほぼ同じベクトルであれば、外積できないし回転させる必要も乏しいので次のボーンへ
+			if (XMVector3Length(XMVectorSubtract(vecToEnd, vecToTarget)).m128_f32[0] <= epsilon)
+			{
+				continue;
+			}
+
+			const XMVECTOR& cross = XMVector3Normalize(XMVector3Cross(vecToEnd, vecToTarget));
+			// 本ではBetweenVectorsを使っているが計算がもったいないのでBetweenNormalsを使う
+			float angle = XMVector3AngleBetweenNormals(vecToEnd, vecToTarget).m128_f32[0];
+			// TODO:一気に回転させると不正確な結果になったりするのか？
+			angle = min(angle, ikLimit);
+
+			// 回転を重ねがけしていく
+			const XMMATRIX& mat = XMMatrixTranslationFromVector(-pos) * XMMatrixRotationAxis(cross, angle) * XMMatrixTranslationFromVector(pos);
+			mats[bidx] *= mat;
+			// 自分より子の位置を回転によって更新しておく
+			for (int idx = bidx - 1; idx >= 0; --idx)
+			{
+				bonePositions[idx] = XMVector3Transform(bonePositions[idx], mat);
+			}
+			endPos = XMVector3Transform(endPos, mat);
+
+			// エフェクタとターゲット位置の差が閾値以下になったら親までループする前に抜ける。この後、さらに上にあるbreakで全体を抜けることになる
+			if (XMVector3Length(XMVectorSubtract(endPos, targetNextPos)).m128_f32[0] <= epsilon)
+			{
+				break;
+			}
+		}
+	}
+
+	int idx = 0;
+	for (uint16_t cidx : ik.nodeIdxes)
+	{
+		_boneMatrices[cidx] = mats[idx];
+		++idx;
+	}
+	//TODO:上のtargetNexPosの計算といい、この計算は意味がわからん
+	const BoneNode& rootNode = *_boneNodeAddressArray[ik.nodeIdxes.back()];
+	RecursiveMatrixMultiply(rootNode, parentMat);
+}
 void PMDActor::IKSolve()
 {
 	for (const PMDIK& ik : _ikData)

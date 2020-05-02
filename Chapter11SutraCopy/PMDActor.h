@@ -87,6 +87,7 @@ private:
 	{
 		uint32_t boneIdx; // ボーンインデックス
 		uint32_t boneType; // ボーン種別
+		uint32_t parentBone; // 親ボーン
 		uint32_t ikParentBone; // IK親ボーン
 		DirectX::XMFLOAT3 startPos; // ボーン基準点（回転中心）
 		std::vector<BoneNode*> children; // 子ボーンのノード
