@@ -60,7 +60,8 @@ bool Application::Init()
 
 	//std::string strMotionPath = "motion/pose.vmd";
 	//std::string strMotionPath = "motion/swing.vmd";
-	std::string strMotionPath = "motion/swing2.vmd";
+	//std::string strMotionPath = "motion/swing2.vmd";
+	std::string strMotionPath = "motion/squat.vmd";
 	//std::string strMotionPath = "motion/motion.vmd";
 	_pmdActor->LoadVMDFile(strMotionPath);
 	_pmdActor->PlayAnimation();

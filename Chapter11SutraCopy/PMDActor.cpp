@@ -785,10 +785,8 @@ HRESULT PMDActor::CreateMaterialBuffers()
 
 void PMDActor::Update()
 {
-#if 0 // スキニング計算を簡単にするために一旦回転を止める
-	_angle += 0.005f;
+	_angle += 0.001f;
 	_mappedMatrices[0] = XMMatrixRotationY(_angle);
-#endif
 	MotionUpdate();
 }
 
@@ -845,6 +843,9 @@ void PMDActor::MotionUpdate()
 	// センターは動かない前提で単位行列
 	// これによって_boneMatrices[]はモデル行列になる
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
+
+	IKSolve();
+
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 }
 
