@@ -826,18 +826,20 @@ void PMDActor::MotionUpdate()
 		auto it = rit.base();
 
 		XMMATRIX rotation = XMMatrixRotationQuaternion(rit->quaternion);
+		XMVECTOR offset = XMLoadFloat3(&rit->offset);
 		if (it != keyframes.end())
 		{
 			// 筆者開発の半分刻み法で、初期値をlerpにとり、ベジエ曲線上の近似値を取得する
 			float t = (float)(frameNo - rit->frameNo) / (it->frameNo - rit->frameNo);
 			t = GetYFromXOnBezier(t, it->p1, it->p2, 12); // 筆者の経験上、12回程度で収束
 			rotation = XMMatrixRotationQuaternion(XMQuaternionSlerp(rit->quaternion, it->quaternion, t));
+			offset = XMVectorLerp(offset, XMLoadFloat3(&it->offset), t);
 		}
 
 		const XMFLOAT3& pos = node.startPos;
 		// キーフレームの情報で回転のみ使用する
 		// ここで求めているのはローカル行列である
-		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * rotation * XMMatrixTranslation(pos.x, pos.y, pos.z);
+		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * rotation * XMMatrixTranslation(pos.x, pos.y, pos.z) * XMMatrixTranslationFromVector(offset);
 	}
 
 	// センターは動かない前提で単位行列
@@ -906,7 +908,7 @@ void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 	assert(ik.nodeIdxes.size() == 2);
 	for (uint16_t chainBoneIdx : ik.nodeIdxes)
 	{
-		const BoneNode* boneNode = _boneNodeAddressArray[endNodeIdx];
+		const BoneNode* boneNode = _boneNodeAddressArray[chainBoneIdx];
 		positions.emplace_back(XMLoadFloat3(&boneNode->startPos));
 	}
 	assert(positions.size() == 3);
@@ -961,7 +963,7 @@ void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 	_boneMatrices[ik.nodeIdxes[1]] *= XMMatrixTranslationFromVector(-positions[0]) * XMMatrixRotationAxis(axis, theta1) * XMMatrixTranslationFromVector(positions[0]);
 	// 真ん中
 	// TODO:この乗算って本当にモデル行列の計算になっているのか？
-	_boneMatrices[ik.nodeIdxes[0]] = XMMatrixTranslationFromVector(-positions[1]) * XMMatrixRotationAxis(axis, theta2) * XMMatrixTranslationFromVector(positions[1]) * _boneMatrices[ik.nodeIdxes[1]];
+	_boneMatrices[ik.nodeIdxes[0]] = XMMatrixTranslationFromVector(-positions[1]) * XMMatrixRotationAxis(axis, theta2 - XM_PI) * XMMatrixTranslationFromVector(positions[1]) * _boneMatrices[ik.nodeIdxes[1]];
 	// エフェクタ
 	//TODO:この計算式が不明
 	_boneMatrices[endNodeIdx] = _boneMatrices[ik.nodeIdxes[0]];
