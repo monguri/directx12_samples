@@ -120,6 +120,9 @@ private:
 	};
 
 	std::unordered_map<std::string, std::vector<KeyFrame>> _motiondata;
+
+	std::vector<uint32_t> _kneeIdxes;
+
 	DWORD _startTime = 0;
 	unsigned int _duration = 0;
 

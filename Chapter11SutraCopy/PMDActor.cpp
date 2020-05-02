@@ -2,6 +2,7 @@
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
 #include <sstream>
+#include <array>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -444,6 +445,10 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	_boneNameArray.resize(boneNum);
 	_boneNodeAddressArray.resize(boneNum);
 
+	// "ひざ"はPMDではCosineIKで折り曲げる軸をX軸に固定する仕様なので
+	// "ひざ"という文字列を含む骨を収集しておく
+	_kneeIdxes.clear();
+
 	// ボーンノードマップ作成
 	for (unsigned short idx = 0; idx < pmdBones.size(); idx++)
 	{
@@ -456,6 +461,11 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 
 		_boneNameArray[idx] = pb.boneName;
 		_boneNodeAddressArray[idx] = &node;
+
+		if (boneNames[idx].find("ひざ") != std::string::npos)
+		{
+			_kneeIdxes.emplace_back(idx);
+		}
 	}
 
 	// ボーンノード同士の親子関係の構築
@@ -833,7 +843,12 @@ void PMDActor::MotionUpdate()
 
 void PMDActor::SolveLookAt(const struct PMDIK& ik)
 {
+	assert(ik.nodeIdxes.size() == 1);
+	// ik.targetIdxはこの場合は未定義なので使わない
+
+	// ルートでありつつエフェクタでもあるボーン
 	uint16_t rootNodeIdx = ik.nodeIdxes[0];
+	// LookAtのターゲット位置を指定するボーン
 	uint16_t targetNodeIdx = ik.boneIdx;
 
 	const BoneNode* rootNode = _boneNodeAddressArray[rootNodeIdx];
@@ -845,11 +860,15 @@ void PMDActor::SolveLookAt(const struct PMDIK& ik)
 	const XMVECTOR& opos2 = XMVector3Transform(opos1, _boneMatrices[rootNodeIdx]);
 	const XMVECTOR& tpos2 = XMVector3Transform(tpos1, _boneMatrices[targetNodeIdx]);
 
+	// バインドポーズ時のエフェクタとターゲット間のベクトル
 	XMVECTOR originVec = XMVectorSubtract(tpos1, opos1);
+	// アニメーション中のエフェクタとターゲット間のベクトル
 	XMVECTOR targetVec = XMVectorSubtract(tpos2, opos2);
 	originVec = XMVector3Normalize(originVec);
 	targetVec = XMVector3Normalize(targetVec);
 
+	// エフェクタをターゲットに向けるには、バインドポーズ時のベクトルを
+	// アニメーションのベクトルに変換するような回転をさせればよい
 	_boneMatrices[rootNodeIdx] =
 		XMMatrixTranslationFromVector(-opos2)
 		* LookAtMatrix(originVec, targetVec, XMFLOAT3(0, 1, 0), XMFLOAT3(1, 0, 0))
@@ -858,6 +877,83 @@ void PMDActor::SolveLookAt(const struct PMDIK& ik)
 
 void PMDActor::SolveCosineIK(const struct PMDIK& ik)
 {
+	// IK構成点の位置の保持
+	std::vector<XMVECTOR> positions;
+	// バインドポーズ時の3点の間の2距離の保持
+	std::array<float, 2> edgeLens;
+
+	// ターゲット
+	uint16_t targetNodeIdx = ik.boneIdx;
+	const BoneNode* targetNode = _boneNodeAddressArray[targetNodeIdx];
+	const XMVECTOR& targetPos = XMVector3Transform(XMLoadFloat3(&targetNode->startPos), _boneMatrices[targetNodeIdx]);
+
+	// 末端、エフェクタ
+	uint16_t endNodeIdx = ik.targetIdx;
+	const BoneNode* endNode = _boneNodeAddressArray[endNodeIdx];
+	// nodeIdxesは子供から親の順でデータが入っているのに注意
+	positions.emplace_back(XMLoadFloat3(&endNode->startPos));
+
+	assert(ik.nodeIdxes.size() == 2);
+	for (uint16_t chainBoneIdx : ik.nodeIdxes)
+	{
+		const BoneNode* boneNode = _boneNodeAddressArray[endNodeIdx];
+		positions.emplace_back(XMLoadFloat3(&boneNode->startPos));
+	}
+	assert(positions.size() == 3);
+
+	// ルートからになるように逆にする
+	std::reverse(positions.begin(), positions.end());
+
+	edgeLens[0] = XMVector3Length(XMVectorSubtract(positions[1], positions[0])).m128_f32[0];
+	edgeLens[1] = XMVector3Length(XMVectorSubtract(positions[2], positions[1])).m128_f32[0];
+
+	// ルートは現在のアニメーションの位置に修正
+	// nodeIdxesは逆順なのでルートがnodeIdxes[1]なのに注意
+	positions[0] = XMVector3Transform(positions[0], _boneMatrices[ik.nodeIdxes[1]]);
+	// positions[1]はIK計算で決めるのでアニメーション位置は計算しない
+	// エフェクタをターゲットの位置に移動させる。よって、アニメーション位置は_boneMatrices[endNodeIdx]だが_boneMatrices[targetNodeIdx]を使う
+	// TODO:これは、本当にターゲット位置に移動させたいなら
+	// positions[2] = targetPos;にすべきでは？
+	// 多分そうすると、骨の長さが足りなくなるケースを考慮してるのだと思うが
+	// 多分、最終行の計算を見てもそうだが、計算方法が僕の知ってるTwoBoneIKと違う
+	positions[2] = XMVector3Transform(positions[2], _boneMatrices[targetNodeIdx]);
+
+	// ルートからエフェクタへのベクトル
+	const XMVECTOR& linearVec = XMVectorSubtract(positions[2], positions[0]);
+	// CosineIK計算をする三角形の各辺の長さ
+	float A = XMVector3Length(linearVec).m128_f32[0];
+	float B = edgeLens[0];
+	float C = edgeLens[1];
+
+	// ルートの角の角度
+	float theta1 = acosf((A * A + B * B - C * C) / (2 * A * B));
+	// 真ん中の点の角の角度
+	float theta2 = acosf((B * B + C * C - A * A) / (2 * B * C));
+
+	// CosineIKで折り曲げる軸を決める
+	// PMDのIKは真ん中が膝のときは強制的にX軸にする仕様である
+	XMVECTOR axis;
+	if (std::find(_kneeIdxes.begin(), _kneeIdxes.end(), ik.nodeIdxes[0]) == _kneeIdxes.end())
+	{
+		// 真ん中が膝ではないときはルートとエフェクタを結ぶベクトルと
+		// ルートとターゲットを結ぶベクトルの2つを含む平面内で回転させるようにする
+		const XMVECTOR& vm = XMVector3Normalize(XMVectorSubtract(positions[2], positions[0]));
+		const XMVECTOR& vt = XMVector3Normalize(XMVectorSubtract(targetPos, positions[0]));
+		axis = XMVector3Cross(vt, vm);
+	}
+	else
+	{
+		const XMFLOAT3& right = XMFLOAT3(1, 0, 0);
+		axis = XMLoadFloat3(&right);
+	}
+
+	// ルート
+	_boneMatrices[ik.nodeIdxes[1]] *= XMMatrixTranslationFromVector(-positions[0]) * XMMatrixRotationAxis(axis, theta1) * XMMatrixTranslationFromVector(positions[0]);
+	// 真ん中
+	_boneMatrices[ik.nodeIdxes[0]] = XMMatrixTranslationFromVector(-positions[1]) * XMMatrixRotationAxis(axis, theta2) * XMMatrixTranslationFromVector(positions[1]) * _boneMatrices[ik.nodeIdxes[1]];
+	// エフェクタ
+	//TODO:この計算式が不明
+	_boneMatrices[endNodeIdx] = _boneMatrices[ik.nodeIdxes[0]];
 }
 
 void PMDActor::SolveCCDIK(const struct PMDIK& ik)
