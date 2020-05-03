@@ -132,20 +132,7 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 		&_vsBlob,
 		&errorBlob
 	);
-	if (FAILED(result))
-	{
-		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-		{
-			::OutputDebugStringA("ファイルが見当たりません。");
-		}
-		else
-		{
-			std::string errstr;
-			errstr.resize(errorBlob->GetBufferSize());
-			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
-			OutputDebugStringA(errstr.c_str());
-		}
-
+	if (!_dx12.CheckResult(result, errorBlob.Get())){
 		assert(false);
 		return result;
 	}
@@ -161,20 +148,7 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 		&_psBlob,
 		&errorBlob
 	);
-	if (FAILED(result))
-	{
-		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-		{
-			::OutputDebugStringA("ファイルが見当たりません。");
-		}
-		else
-		{
-			std::string errstr;
-			errstr.resize(errorBlob->GetBufferSize());
-			std::copy_n((char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize(), errstr.begin());
-			OutputDebugStringA(errstr.c_str());
-		}
-
+	if (!_dx12.CheckResult(result, errorBlob.Get())){
 		assert(false);
 		return result;
 	}
