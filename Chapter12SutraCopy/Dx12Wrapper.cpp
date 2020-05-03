@@ -1,5 +1,6 @@
 #include "Dx12Wrapper.h"
 #include "Application.h"
+#include<d3dcompiler.h>
 
 #ifdef _DEBUG
 #include <iostream>
@@ -223,6 +224,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 	}
 
 	result = CreatePeraResouceAndView();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	result = CreatePeraPipeline();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -520,6 +528,99 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	return result;
 }
 
+bool Dx12Wrapper::CheckShaderCompileResult(HRESULT result, ID3DBlob* error) {
+	if (FAILED(result)) {
+		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
+			::OutputDebugStringA("ファイルが見当たりません");
+		}
+		else {
+			std::string errstr;
+			errstr.resize(error->GetBufferSize());
+			std::copy_n((char*)error->GetBufferPointer(), error->GetBufferSize(), errstr.begin());
+			errstr += "\n";
+			OutputDebugStringA(errstr.c_str());
+		}
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+HRESULT Dx12Wrapper::CreatePeraPipeline()
+{
+	ComPtr<ID3DBlob> vsBlob = nullptr;
+	ComPtr<ID3DBlob> psBlob = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+	HRESULT result = D3DCompileFromFile(L"PeraVertexShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraVS", "vs_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, &vsBlob, &errorBlob);
+	if (!CheckShaderCompileResult(result,errorBlob.Get())){
+		assert(0);
+		return result;
+	}
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, &psBlob, &errorBlob);
+	if (!CheckShaderCompileResult(result, errorBlob.Get())) {
+		assert(0);
+		return result;
+	}
+
+	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
+	rsDesc.NumParameters = 0;
+	rsDesc.NumStaticSamplers = 0;
+	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	
+	ComPtr<ID3DBlob> rootSigBlob = nullptr;
+	result = D3D12SerializeRootSignature(&rsDesc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSigBlob, &errorBlob);
+	if (FAILED(result)) {
+		assert(SUCCEEDED(result));
+		return result;
+	}
+	result = _dev->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(_peraRS.ReleaseAndGetAddressOf()));
+	if (FAILED(result)) {
+		assert(SUCCEEDED(result));
+		return result;
+	}
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsDesc = {};
+	gpsDesc.VS = CD3DX12_SHADER_BYTECODE(vsBlob.Get());
+	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
+	gpsDesc.DepthStencilState.DepthEnable = false;
+	gpsDesc.DepthStencilState.StencilEnable = false;
+
+
+	D3D12_INPUT_ELEMENT_DESC layout[2] = {
+		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
+		{ "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
+	};
+
+	gpsDesc.InputLayout.pInputElementDescs = layout;
+	gpsDesc.InputLayout.NumElements = _countof(layout);
+	gpsDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	gpsDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	gpsDesc.NumRenderTargets = 1;
+	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	gpsDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	gpsDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	gpsDesc.SampleDesc.Count = 1;
+	gpsDesc.SampleDesc.Quality = 0;
+	gpsDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	gpsDesc.pRootSignature = _peraRS.Get();
+
+	result = _dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(_peraPipeline.ReleaseAndGetAddressOf()));
+	if (FAILED(result)) {
+		assert(SUCCEEDED(result));
+	}
+
+	return result;
+}
+
 HRESULT Dx12Wrapper::CreateDepthStencil()
 {
 	// 深度バッファ作成
@@ -643,8 +744,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 
 void Dx12Wrapper::BeginDraw()
 {
-
-#if 0
+#if 1
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 	// Present状態からレンダーターゲット状態にする
@@ -667,10 +767,9 @@ void Dx12Wrapper::BeginDraw()
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
 #endif
 
-
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
-#if 0
+#if 1
 	_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
 #else
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, &dsvH);
@@ -678,7 +777,7 @@ void Dx12Wrapper::BeginDraw()
 
 	// レンダーターゲットをクリアする
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
-#if 0
+#if 1
 	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 #else
 	_cmdList->ClearRenderTargetView(rtvHeapPointer, clearColor, 0, nullptr);
@@ -687,7 +786,6 @@ void Dx12Wrapper::BeginDraw()
 
 	_cmdList->RSSetViewports(1, &_viewport);
 	_cmdList->RSSetScissorRects(1, &_scissorrect);
-
 }
 
 void Dx12Wrapper::SetCamera()
@@ -697,11 +795,21 @@ void Dx12Wrapper::SetCamera()
 	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
+void Dx12Wrapper::Draw()
+{
+	// ペラに描画する
+	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
+	_cmdList->SetPipelineState(_peraPipeline.Get());
+	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	_cmdList->IASetVertexBuffers(0, 1, &_peraVBV);
+	_cmdList->DrawInstanced(4, 1, 0, 0);
+}
+
 void Dx12Wrapper::EndDraw()
 {
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
-#if 0
+#if 1
 	// レンダーターゲット状態からPresent状態にする
 	_cmdList->ResourceBarrier(
 		1,
