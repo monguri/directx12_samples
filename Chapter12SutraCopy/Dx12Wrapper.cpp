@@ -215,6 +215,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreatePeraVertex();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreatePeraResouceAndView();
 	if (FAILED(result))
 	{
@@ -394,6 +401,54 @@ HRESULT Dx12Wrapper::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapch
 
 	_viewport = CD3DX12_VIEWPORT(_backBuffers[0].Get());
 	_scissorrect = CD3DX12_RECT(0, 0, swapchainDesc.Width, swapchainDesc.Height);
+
+	return result;
+}
+
+HRESULT Dx12Wrapper::CreatePeraVertex()
+{
+	struct PeraVertex
+	{
+		XMFLOAT3 pos;
+		XMFLOAT2 uv;
+	};
+
+	PeraVertex pv[4] = {
+		{{-1.0f, -1.0f, 0.1f}, {0.0f, 1.0f}}, // 左下
+		{{-1.0f, 1.0f, 0.1f}, {0.0f, 0.0f}}, // 左上
+		{{1.0f, -1.0f, 0.1f}, {1.0f, 1.0f}}, // 右下
+		{{1.0f, 1.0f, 0.1f}, {1.0f, 0.0f}} // 右上
+	};
+
+	HRESULT result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(pv)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_peraVB.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	// 頂点バッファービュー
+	_peraVBV.BufferLocation = _peraVB->GetGPUVirtualAddress();
+	_peraVBV.SizeInBytes = (UINT)sizeof(pv);
+	_peraVBV.StrideInBytes = sizeof(PeraVertex);
+
+	// 頂点バッファへのデータ書き込み
+	PeraVertex* mappedPera = nullptr;
+	result = _peraVB->Map(0, nullptr, (void**)&mappedPera);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+	std::copy(std::begin(pv), std::end(pv), mappedPera);
+	_peraVB->Unmap(0, nullptr);
 
 	return result;
 }

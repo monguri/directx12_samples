@@ -60,6 +60,8 @@ private:
 	CD3DX12_RECT _scissorrect;
 
 
+	ComPtr<ID3D12Resource> _peraVB = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _peraSRVHeap = nullptr;
 	ComPtr<ID3D12Resource> _peraResource = nullptr;
@@ -68,6 +70,7 @@ private:
 	HRESULT CreateCommand();
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
+	HRESULT CreatePeraVertex();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreateDepthStencil();
 	HRESULT CreateCameraConstantBuffer();
