@@ -1,4 +1,4 @@
-#include "BasicShaderHeader.hlsli"
+#include "Type.hlsli"
 
 // 定数バッファ
 cbuffer SceneData : register(b0)
