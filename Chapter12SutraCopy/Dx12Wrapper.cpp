@@ -402,7 +402,6 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 {
 	// FinalRenderTargetと同じ設定のバッファをもう一枚作る
 
-	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
 	ComPtr<ID3D12Resource> bbuff = _backBuffers[0];
 	D3D12_RESOURCE_DESC resDesc = bbuff->GetDesc();
 
@@ -424,6 +423,44 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		assert(false);
 		return result;
 	}
+
+	// RTV用ヒープ
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
+	heapDesc.NumDescriptors = 1;
+	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	_dev->CreateRenderTargetView(_peraResource.Get(), &rtvDesc, _peraRTVHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// SRV用ヒープ
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraSRVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = rtvDesc.Format;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	_dev->CreateShaderResourceView(
+		_peraResource.Get(),
+		&srvDesc,
+		_peraSRVHeap->GetCPUDescriptorHandleForHeapStart()
+	);
 
 	return result;
 }

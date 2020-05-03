@@ -60,7 +60,9 @@ private:
 	CD3DX12_RECT _scissorrect;
 
 
-	ComPtr<ID3D12Resource> _peraResource;
+	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _peraSRVHeap = nullptr;
+	ComPtr<ID3D12Resource> _peraResource = nullptr;
 
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
