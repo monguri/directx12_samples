@@ -44,7 +44,7 @@ private:
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
 	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
 
-	struct SceneData* _mapScene = nullptr;
+	struct SceneMatrix* _mappedScene = nullptr;
 
 	ComPtr<ID3D12Fence> _fence = nullptr;
 	UINT _fenceVal = 0;

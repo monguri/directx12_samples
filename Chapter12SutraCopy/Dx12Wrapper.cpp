@@ -150,7 +150,7 @@ ComPtr<ID3D12Resource> Dx12Wrapper::LoadTextureFromFile(const std::string& texPa
 	return texbuff;
 }
 
-struct SceneData
+struct SceneMatrix
 {
 	XMMATRIX view;
 	XMMATRIX proj;
@@ -214,6 +214,10 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		assert(false);
 		return;
 	}
+
+
+
+
 
 	// テクスチャローダー関数テーブル作成
 	_loadLambdaTable["sph"] = _loadLambdaTable["spa"] = _loadLambdaTable["bmp"] = _loadLambdaTable["png"] =
@@ -459,7 +463,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	HRESULT result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneMatrix) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(_sceneConstBuff.ReleaseAndGetAddressOf())
@@ -470,15 +474,15 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		return result;
 	}
 
-	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mapScene);
+	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mappedScene);
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
-	_mapScene->view = viewMat;
-	_mapScene->proj = projMat;
-	_mapScene->eye = eye;
+	_mappedScene->view = viewMat;
+	_mappedScene->proj = projMat;
+	_mappedScene->eye = eye;
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
