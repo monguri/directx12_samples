@@ -59,10 +59,14 @@ private:
 	CD3DX12_VIEWPORT _viewport;
 	CD3DX12_RECT _scissorrect;
 
+
+	ComPtr<ID3D12Resource> _peraResource;
+
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
+	HRESULT CreatePeraResouceAndView();
 	HRESULT CreateDepthStencil();
 	HRESULT CreateCameraConstantBuffer();
 };

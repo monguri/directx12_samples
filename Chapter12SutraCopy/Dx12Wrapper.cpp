@@ -215,9 +215,12 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
-
-
-
+	result = CreatePeraResouceAndView();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
 
 	// テクスチャローダー関数テーブル作成
 	_loadLambdaTable["sph"] = _loadLambdaTable["spa"] = _loadLambdaTable["bmp"] = _loadLambdaTable["png"] =
@@ -350,7 +353,11 @@ HRESULT Dx12Wrapper::CreateCommand()
 
 HRESULT Dx12Wrapper::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapchainDesc)
 {
-	// ディスクリプタヒープの生成と、2枚のバックバッファ用のレンダーターゲットビューの生成
+	// バッファはID3D12Resourceを自分で作らなくても、スワップチェイン作成時に
+	// 同時に作られてスワップチェインに保持されている
+	// RenderTargetViewを2枚のバッファに作る。
+
+	// ディスクリプタヒープの生成と、2枚のバッファ用のレンダーターゲットビューの生成
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	heapDesc.NodeMask = 0;
@@ -387,6 +394,36 @@ HRESULT Dx12Wrapper::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapch
 
 	_viewport = CD3DX12_VIEWPORT(_backBuffers[0].Get());
 	_scissorrect = CD3DX12_RECT(0, 0, swapchainDesc.Width, swapchainDesc.Height);
+
+	return result;
+}
+
+HRESULT Dx12Wrapper::CreatePeraResouceAndView()
+{
+	// FinalRenderTargetと同じ設定のバッファをもう一枚作る
+
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
+	ComPtr<ID3D12Resource> bbuff = _backBuffers[0];
+	D3D12_RESOURCE_DESC resDesc = bbuff->GetDesc();
+
+	const D3D12_HEAP_PROPERTIES& heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	float clsClr[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
+
+	HRESULT result = _dev->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&clearValue,
+		IID_PPV_ARGS(_peraResource.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
 
 	return result;
 }
@@ -530,7 +567,7 @@ void Dx12Wrapper::BeginDraw()
 	_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
 
 	// レンダーターゲットをクリアする
-	float clearColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
 	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
