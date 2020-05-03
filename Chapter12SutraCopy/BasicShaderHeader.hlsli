@@ -1,4 +1,5 @@
-struct Output
+// ƒ‚ƒfƒ‹•`‰æ—p
+struct BasicType
 {
 	float4 svpos : SV_Position;
 	float4 normal : NORMAL0;

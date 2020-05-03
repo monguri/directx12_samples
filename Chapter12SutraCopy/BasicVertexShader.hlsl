@@ -14,7 +14,7 @@ cbuffer Transform : register(b1)
 	matrix bones[256];
 }
 
-Output BasicVS(
+BasicType BasicVS(
 float4 pos : POSITION,
 float4 normal : NORMAL,
 float2 uv : TEXCOORD,
@@ -22,7 +22,7 @@ min16uint2 boneno : BONE_NO,
 min16uint2 weight : WEIGHT
 )
 {
-	Output output;
+	BasicType output;
 	float w = (float)weight / 100.0f;
 
 	matrix bm = bones[boneno[0]] * w + bones[boneno[1]] * (1.0f - w);
