@@ -48,8 +48,10 @@
   <ItemGroup>
     <FxCompile Include="BasicPixelShader.hlsl" />
     <FxCompile Include="BasicVertexShader.hlsl" />
+    <FxCompile Include="PeraPixelShader.hlsl" />
+    <FxCompile Include="PeraVertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="BasicShaderHeader.hlsli" />
+    <None Include="Type.hlsli" />
   </ItemGroup>
 </Project>

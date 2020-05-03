@@ -13,7 +13,7 @@ cbuffer Material : register(b2)
 	float3 ambient;
 };
 
-float4 BasicPS(BasicType input) : SV_TARGET
+float4 PeraPS(BasicType input) : SV_TARGET
 {
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
