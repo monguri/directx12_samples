@@ -588,9 +588,9 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		assert(false);
 		return result;
 	}
-	result = D3DCompileFromFile(L"PeraUVGradPixelShader.hlsl",
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"PeraPS", "ps_5_0",
+		"PeraUVGradPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 	if (!CheckResult(result, errorBlob.Get())) {
