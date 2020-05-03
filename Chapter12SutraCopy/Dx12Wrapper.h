@@ -20,7 +20,7 @@ public:
 	ComPtr<ID3D12GraphicsCommandList> CommandList() const;
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
-	bool CheckShaderCompileResult(HRESULT result , ID3DBlob* error=nullptr);
+	bool CheckResult(HRESULT result , ID3DBlob* error=nullptr);
 
 	void BeginDraw();
 	void SetCamera();
@@ -68,7 +68,9 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _peraSRVHeap = nullptr;
 	ComPtr<ID3D12Resource> _peraResource = nullptr;
 	ComPtr<ID3D12RootSignature> _peraRS = nullptr;
+	ComPtr<ID3D12RootSignature> _peraRS2 = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
+	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;
 
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
@@ -77,6 +79,7 @@ private:
 	HRESULT CreatePeraVertex();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
+	HRESULT CreatePeraPipeline2();
 	HRESULT CreateDepthStencil();
 	HRESULT CreateCameraConstantBuffer();
 };

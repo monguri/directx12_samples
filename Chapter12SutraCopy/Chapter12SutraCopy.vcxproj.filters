@@ -50,6 +50,7 @@
     <FxCompile Include="BasicVertexShader.hlsl" />
     <FxCompile Include="PeraPixelShader.hlsl" />
     <FxCompile Include="PeraVertexShader.hlsl" />
+    <FxCompile Include="PeraUVGradPixelShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Type.hlsli" />
