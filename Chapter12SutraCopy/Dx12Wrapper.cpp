@@ -588,6 +588,8 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 
 void Dx12Wrapper::BeginDraw()
 {
+
+#if 0
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 	// Present状態からレンダーターゲット状態にする
@@ -599,13 +601,33 @@ void Dx12Wrapper::BeginDraw()
 	// レンダーターゲットを指定する
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvH(_rtvHeaps->GetCPUDescriptorHandleForHeapStart());
 	rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+#else
+	// SRV状態からレンダーターゲット状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+
+	// レンダーターゲットを指定する
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
+#endif
+
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
+#if 0
 	_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
+#else
+	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, &dsvH);
+#endif
 
 	// レンダーターゲットをクリアする
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
+#if 0
 	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
+#else
+	_cmdList->ClearRenderTargetView(rtvHeapPointer, clearColor, 0, nullptr);
+#endif
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	_cmdList->RSSetViewports(1, &_viewport);
@@ -624,11 +646,19 @@ void Dx12Wrapper::EndDraw()
 {
 	UINT bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
+#if 0
 	// レンダーターゲット状態からPresent状態にする
 	_cmdList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
 	);
+#else
+	// レンダーターゲット状態からSRV状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
+#endif
 
 	// コマンドリストのクローズ
 	_cmdList->Close();
