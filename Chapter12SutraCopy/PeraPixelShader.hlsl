@@ -132,3 +132,51 @@ float4 PeraEdgeDetectionPS(PeraType input) : SV_TARGET
 	Y = step(0.2f, Y);
 	return float4(Y, Y, Y, 1.0f);
 }
+
+float4 PeraGaussianBlurPS(PeraType input) : SV_TARGET
+{
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+
+	float4 ret = 0;
+	// 最上段
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 1;
+	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -2 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(0 * dx, -2 * dy)) * 6;
+	ret += tex.Sample(smp, input.uv + float2(1 * dx, -2 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 1;
+
+	// 一つ上段
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -1 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -1 * dy)) * 16;
+	ret += tex.Sample(smp, input.uv + float2(0 * dx, -1 * dy)) * 24;
+	ret += tex.Sample(smp, input.uv + float2(1 * dx, -1 * dy)) * 16;
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, -1 * dy)) * 4;
+
+	// 中断
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0 * dy)) * 6;
+	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 0 * dy)) * 24;
+	ret += tex.Sample(smp, input.uv + float2(0 * dx, 0 * dy)) * 36;
+	ret += tex.Sample(smp, input.uv + float2(1 * dx, 0 * dy)) * 24;
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0 * dy)) * 6;
+
+	// 一つ上段
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 1 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 1 * dy)) * 16;
+	ret += tex.Sample(smp, input.uv + float2(0 * dx, 1 * dy)) * 24;
+	ret += tex.Sample(smp, input.uv + float2(1 * dx, 1 * dy)) * 16;
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 1 * dy)) * 4;
+
+	// 最下段
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 1;
+	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 2 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(0 * dx, 2 * dy)) * 6;
+	ret += tex.Sample(smp, input.uv + float2(1 * dx, 2 * dy)) * 4;
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 1;
+
+	return ret / 256;
+}
+
