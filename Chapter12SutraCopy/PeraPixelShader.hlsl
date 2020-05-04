@@ -122,5 +122,13 @@ float4 PeraEdgeDetectionPS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0; // 左下
 	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)) * -1; // 下
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 0; // 右下
-	return ret;
+
+	// 輝度を取得
+	// PAL : Y = 0.299 R + 0.587 G + 0.114 B
+	float Y = dot(ret.rgb, float3(0.299f, 0.587f, 0.114f));
+	// エッジをさらに強調
+	Y = pow(1.0f - Y, 10);
+	// 薄いエッジを出さない
+	Y = step(0.2f, Y);
+	return float4(Y, Y, Y, 1.0f);
 }
