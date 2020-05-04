@@ -88,12 +88,10 @@ void Application::Run()
 		}
 
 		_dx12->BeginDraw();
-#if 0 // TODO:MRTテストのためにPMDモデル描画は止める
 		_pmdRenderer->PrepareDraw();
 		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
 		_pmdActor->Update();
 		_pmdActor->Draw();
-#endif
 		_dx12->Draw();
 		_dx12->EndDraw();
 	}

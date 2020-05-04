@@ -789,7 +789,7 @@ void Dx12Wrapper::BeginDraw()
 		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
-	// レンダーターゲットを指定する
+	// レンダーターゲットをペラに指定する
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -804,11 +804,13 @@ void Dx12Wrapper::BeginDraw()
 	_cmdList->RSSetViewports(1, &_viewport);
 	_cmdList->RSSetScissorRects(1, &_scissorrect);
 
+#if 0 // UVグラデーション描画
 	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
 	_cmdList->SetPipelineState(_peraPipeline.Get());
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	_cmdList->IASetVertexBuffers(0, 1, &_peraVBV);
 	_cmdList->DrawInstanced(4, 1, 0, 0);
+#endif
 }
 
 void Dx12Wrapper::SetCamera()
