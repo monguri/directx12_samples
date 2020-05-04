@@ -119,7 +119,7 @@ private:
 
 	HRESULT LoadPMDFileAndCreateMeshBuffers(const std::string& path);
 	void RecursiveMatrixMultiply(const BoneNode& node, const DirectX::XMMATRIX& mat);
-	void MotionUpdate();
+	void UpdateMotion();
 	void SolveCCDIK(const PMDIK& ik);
 	void SolveCosineIK(const PMDIK& ik);
 	void SolveLookAt(const PMDIK& ik);

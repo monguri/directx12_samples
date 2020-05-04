@@ -781,10 +781,10 @@ HRESULT PMDActor::CreateMaterialBuffers()
 void PMDActor::Update()
 {
 	_mappedMatrices[0] = XMMatrixTranslation(_pos.x, _pos.y, _pos.z);
-	MotionUpdate();
+	UpdateMotion();
 }
 
-void PMDActor::MotionUpdate()
+void PMDActor::UpdateMotion()
 {
 	DWORD elapsedTime = timeGetTime() - _startTime;
 	unsigned int frameNo = (unsigned int)(30 * (elapsedTime / 1000.0f));
