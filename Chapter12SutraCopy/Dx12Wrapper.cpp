@@ -644,11 +644,19 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	//
 	// 1パス目で作ったレンダーテクスチャをフェッチしてバックバッファに描画する2パス目のパイプライン
 	//
+#if 0 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#else // 輝度によるグレースケール
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraGrayscalePS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#endif
 	if (!CheckResult(result, errorBlob.Get())) {
 		assert(false);
 		return result;
