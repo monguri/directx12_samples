@@ -593,11 +593,6 @@ HRESULT PMDActor::LoadVMDFile(const std::string& path)
 		_boneMatrices[node.boneIdx] = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) * XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) * XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
-	// センターは動かない前提で単位行列
-	// これによって_boneMatrices[]はモデル行列になる
-	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
-	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
-
 	return S_OK;
 }
 
