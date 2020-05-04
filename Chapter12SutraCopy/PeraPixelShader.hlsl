@@ -20,3 +20,10 @@ float4 PeraGrayscalePS(PeraType input) : SV_TARGET
 	float Y = dot(col.rgb, float3(0.299f, 0.587f, 0.114f));
 	return float4(Y, Y, Y, 1.0f);
 }
+
+float4 PeraInverseColorPS(PeraType input) : SV_TARGET
+{
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(1.0f - col.rgb, 1.0f);
+}
+
