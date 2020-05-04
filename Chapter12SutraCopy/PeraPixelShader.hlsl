@@ -42,15 +42,17 @@ float4 Pera9AveragePS(PeraType input) : SV_TARGET
 	float dy = 1.0f / h;
 
 	float4 ret = 0;
-	ret += tex.Sample(smp, input.uv + float2(-dx, -dy)); // 左上
-	ret += tex.Sample(smp, input.uv + float2(0.0f, -dy)); // 上
-	ret += tex.Sample(smp, input.uv + float2(dx, -dy)); // 右上
-	ret += tex.Sample(smp, input.uv + float2(-dx, 0.0f)); // 左
+	// 2 * は、効果をよりはっきり見せるためにやっている
+	// ただし色が急激に変わる境界部分ではディザーっぽくなる
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)); // 左上
+	ret += tex.Sample(smp, input.uv + float2(0.0f, -2 * dy)); // 上
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)); // 右上
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0.0f)); // 左
 	ret += tex.Sample(smp, input.uv + float2(0.0f, 0.0f)); // 自分
-	ret += tex.Sample(smp, input.uv + float2(dx, 0.0f)); // 右
-	ret += tex.Sample(smp, input.uv + float2(-dx, dy)); // 左下
-	ret += tex.Sample(smp, input.uv + float2(0.0f, dy)); // 下
-	ret += tex.Sample(smp, input.uv + float2(dx, dy)); // 右下
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0.0f)); // 右
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)); // 左下
+	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)); // 下
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)); // 右下
 	return ret / 9.0f;
 }
 
