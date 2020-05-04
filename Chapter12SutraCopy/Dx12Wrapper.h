@@ -25,10 +25,12 @@ public:
 	ComPtr<ID3D12Resource> GetWhiteTexture();
 	ComPtr<ID3D12Resource> GetBlackTexture();
 
-	void BeginDraw();
+	void PreDrawToPera1();
+	void PostDrawToPera1();
 	void SetCamera();
+	void DrawHorizontalBokeh();
 	void Draw();
-	void EndDraw();
+	void Flip();
 
 private:
 	ComPtr<ID3D12Device> _dev = nullptr;
@@ -68,8 +70,9 @@ private:
 	ComPtr<ID3D12Resource> _peraVB = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
-	ComPtr<ID3D12DescriptorHeap> _peraSRVHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _peraRegisterHeap = nullptr;
 	ComPtr<ID3D12Resource> _peraResource = nullptr;
+	ComPtr<ID3D12Resource> _peraResource2 = nullptr;
 	ComPtr<ID3D12RootSignature> _peraRS = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;

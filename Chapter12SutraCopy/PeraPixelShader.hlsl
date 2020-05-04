@@ -1,6 +1,11 @@
 #include "Type.hlsli"
 
+cbuffer Weight : register(b0)
+{
+	float4 bkweights[2];
+};
 Texture2D<float4> tex : register(t0);
+Texture2D<float4> distex : register(t1);
 SamplerState smp : register(s0);
 
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
@@ -178,5 +183,42 @@ float4 PeraGaussianBlurPS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 1;
 
 	return ret / 256;
+}
+
+float4 PeraHorizontalBokehPS(PeraType input) : SV_TARGET
+{
+	float4 ret = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dx = 1.0f / w;
+
+	for (int i = 0; i < 8; ++i)
+	{
+		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(i * dx, 0.0f));
+		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(-i * dx, 0.0f));
+	}
+
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
+}
+
+float4 PeraVerticalBokehPS(PeraType input) : SV_TARGET
+{
+	float4 ret = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float w, h;
+	distex.GetDimensions(w, h);
+
+	float dy = 1.0f / h;
+
+	for (int i = 0; i < 8; ++i)
+	{
+		ret += bkweights[i >> 2][i % 4] * distex.Sample(smp, input.uv + float2(0.0f, i * dy));
+		ret += bkweights[i >> 2][i % 4] * distex.Sample(smp, input.uv + float2(0.0f, -i * dy));
+	}
+
+	// TODO:これまでのポストプロセスもaチャンネルは維持するようにせよ
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
 }
 
