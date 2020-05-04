@@ -85,8 +85,8 @@ private:
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreatePeraVertex();
-	HRESULT CreatePeraResouceAndView();
 	HRESULT CreateBokehParamResouce();
+	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateDepthStencil();
 	HRESULT CreateCameraConstantBuffer();

@@ -500,6 +500,43 @@ HRESULT Dx12Wrapper::CreatePeraVertex()
 	return result;
 }
 
+HRESULT Dx12Wrapper::CreateBokehParamResouce()
+{
+	// 自分を含めて片方向8ピクセル分。標準偏差は5ピクセル。
+	const std::vector<float>& weights = GetGaussianWeights(8, 5.0f);
+	// TODO:本のように関数化したい
+	size_t alignmentedSize = (sizeof(weights[0]) * weights.size() + 0xff) & ~0xff;
+
+	HRESULT result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(alignmentedSize),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_bokehParamResource.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	float* mappedWeight = nullptr;
+	result = _bokehParamResource->Map(0, nullptr, (void**)&mappedWeight);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	std::copy(weights.begin(), weights.end(), mappedWeight);
+	_bokehParamResource->Unmap(0, nullptr);
+
+	// CBVはペラのSRVとまとめるのでここでは作らない
+
+	return result;
+}
+
 HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 {
 	// FinalRenderTargetと同じ設定のバッファをもう一枚作る
@@ -563,43 +600,6 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		&srvDesc,
 		_peraSRVHeap->GetCPUDescriptorHandleForHeapStart()
 	);
-
-	return result;
-}
-
-HRESULT Dx12Wrapper::CreateBokehParamResouce()
-{
-	// 自分を含めて片方向8ピクセル分。標準偏差は5ピクセル。
-	const std::vector<float>& weights = GetGaussianWeights(8, 5.0f);
-	// TODO:本のように関数化したい
-	size_t alignmentedSize = (sizeof(weights[0]) * weights.size() + 0xff) & ~0xff;
-
-	HRESULT result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(alignmentedSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(_bokehParamResource.ReleaseAndGetAddressOf())
-	);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	float* mappedWeight = nullptr;
-	result = _bokehParamResource->Map(0, nullptr, (void**)&mappedWeight);
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	std::copy(weights.begin(), weights.end(), mappedWeight);
-	_bokehParamResource->Unmap(0, nullptr);
-
-	// CBVはペラのSRVとまとめるのでここでは作らない
 
 	return result;
 }
