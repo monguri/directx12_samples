@@ -27,3 +27,9 @@ float4 PeraInverseColorPS(PeraType input) : SV_TARGET
 	return float4(1.0f - col.rgb, 1.0f);
 }
 
+float4 PeraDownToneLevelPS(PeraType input) : SV_TARGET
+{
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(col.rgb - fmod(col.rgb, 0.25f), 1.0f);
+}
+
