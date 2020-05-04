@@ -21,6 +21,9 @@ public:
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
 	bool CheckResult(HRESULT result , ID3DBlob* error=nullptr);
+	ComPtr<ID3D12Resource> GetGrayGradientTexture();
+	ComPtr<ID3D12Resource> GetWhiteTexture();
+	ComPtr<ID3D12Resource> GetBlackTexture();
 
 	void BeginDraw();
 	void SetCamera();
@@ -41,6 +44,10 @@ private:
 
 	// ファイルパスごとにリソースをキャッシュして使いまわすためのテーブル
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;
+
+	ComPtr<ID3D12Resource> _gradTex = nullptr;
+	ComPtr<ID3D12Resource> _whiteTex = nullptr;
+	ComPtr<ID3D12Resource> _blackTex = nullptr;
 
 	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
@@ -70,6 +77,10 @@ private:
 	ComPtr<ID3D12RootSignature> _peraRS = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;
+
+	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
+	ComPtr<ID3D12Resource> CreateWhiteTexture();
+	ComPtr<ID3D12Resource> CreateBlackTexture();
 
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();

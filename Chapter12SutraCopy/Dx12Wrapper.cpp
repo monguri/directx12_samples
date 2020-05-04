@@ -275,6 +275,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	_whiteTex = CreateWhiteTexture();
+	_blackTex = CreateBlackTexture();
+	_gradTex = CreateGrayGradientTexture();
+	assert(_whiteTex != nullptr);
+	assert(_blackTex != nullptr);
+	assert(_gradTex != nullptr);
+
 	return;
 }
 
@@ -717,7 +724,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 {
 	// 定数バッファ用データ
 	// 定数バッファ作成
-	XMFLOAT3 eye(0, 15, -30);
+	XMFLOAT3 eye(0, 15, -25);
 	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
@@ -779,6 +786,190 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	);
 
 	return result;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::CreateGrayGradientTexture()
+{
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
+	// テクスチャバッファ作成
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
+
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		256
+	);
+
+	ComPtr<ID3D12Resource> texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	// 上が白くて下が黒いグレースケールグラデーションテクスチャの作成
+	// 4byte 4x256のテクスチャ
+	std::vector<unsigned int> data(4 * 256);
+	// グレースケール値
+	unsigned int grayscale = 0xff;
+	for (auto it = data.begin(); it != data.end(); it += 4) // インクリメントは行単位
+	{
+		// グレースケール値をRGBA4チャンネルに適用したもの
+		unsigned int grayscaleRGBA = (grayscale << 24) | (grayscale << 16) | (grayscale << 8) | grayscale;
+		// 行の4ピクセル同時に塗る
+		std::fill(it, it + 4, grayscaleRGBA);
+		// グレースケール値を下げる
+		--grayscale;
+	}
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		(UINT)(4 * sizeof(unsigned int)),
+		(UINT)(sizeof(unsigned int) * data.size())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::CreateWhiteTexture()
+{
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
+	// テクスチャバッファ作成
+	D3D12_HEAP_PROPERTIES texHeapProp = CD3DX12_HEAP_PROPERTIES(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
+
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		4
+	);
+
+	ComPtr<ID3D12Resource> texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	// 4byte 4x4のテクスチャ
+	std::vector<unsigned char> data(4 * 4 * 4);
+	// 0xffで埋めるためRGBAは(255, 255, 255, 255)になる
+	std::fill(data.begin(), data.end(), 0xff);
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		4 * 4,
+		(UINT)data.size()
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::CreateBlackTexture()
+{
+	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
+
+	// テクスチャバッファ作成
+	CD3DX12_HEAP_PROPERTIES texHeapProp(
+		D3D12_CPU_PAGE_PROPERTY_WRITE_BACK,
+		D3D12_MEMORY_POOL_L0
+	);
+
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		4,
+		4
+	);
+
+	ComPtr<ID3D12Resource> texbuff = nullptr;
+	HRESULT result = _dev->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(texbuff.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	// 4byte 4x4のテクスチャ
+	std::vector<unsigned char> data(4 * 4 * 4);
+	// 0x00で埋めるためRGBAは(0, 0, 0, 0)になる
+	std::fill(data.begin(), data.end(), 0x00);
+
+	// テクスチャバッファへ作成したテクスチャデータを書き込み
+	result = texbuff->WriteToSubresource(
+		0,
+		nullptr,
+		data.data(),
+		4 * 4,
+		(UINT)data.size()
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	return texbuff;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::GetGrayGradientTexture()
+{
+	return _gradTex;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::GetWhiteTexture()
+{
+	return _whiteTex;
+}
+
+ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture()
+{
+	return _blackTex;
 }
 
 void Dx12Wrapper::BeginDraw()

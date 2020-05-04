@@ -1,6 +1,5 @@
 #include "PMDActor.h"
 #include "Dx12Wrapper.h"
-#include "PMDRenderer.h"
 #include <sstream>
 #include <array>
 
@@ -121,8 +120,8 @@ namespace
 	};
 } // namespace
 
-PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& modelPath)
-: _dx12(dx12), _renderer(renderer)
+PMDActor::PMDActor(Dx12Wrapper& dx12, const std::string& modelPath)
+: _dx12(dx12)
 {
 	HRESULT result = LoadPMDFileAndCreateMeshBuffers(modelPath);
 	if (FAILED(result))
@@ -146,11 +145,6 @@ PMDActor::PMDActor(Dx12Wrapper& dx12, PMDRenderer& renderer, const std::string& 
 	}
 
 	return;
-}
-
-void* PMDActor::Transform::operator new(size_t size)
-{
-	return _aligned_malloc(size, 16);
 }
 
 HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
@@ -376,22 +370,22 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 
 			if (_toonResources[i] == nullptr)
 			{
-				_toonResources[i] = _renderer.GetGrayGradientTexture();
+				_toonResources[i] = _dx12.GetGrayGradientTexture();
 			}
 
 			if (_textureResources[i] == nullptr)
 			{
-				_textureResources[i] = _renderer.GetWhiteTexture();
+				_textureResources[i] = _dx12.GetWhiteTexture();
 			}
 
 			if (_sphResources[i] == nullptr)
 			{
-				_sphResources[i] = _renderer.GetWhiteTexture();
+				_sphResources[i] = _dx12.GetWhiteTexture();
 			}
 
 			if (_spaResources[i] == nullptr)
 			{
-				_spaResources[i] = _renderer.GetBlackTexture();
+				_spaResources[i] = _dx12.GetBlackTexture();
 			}
 		}
 	}
@@ -523,6 +517,13 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	return result;
 }
 
+void PMDActor::Move(float x, float y, float z)
+{
+	_pos.x += x;
+	_pos.y += y;
+	_pos.z += z;
+}
+
 HRESULT PMDActor::LoadVMDFile(const std::string& path)
 {
 	FILE* fp = nullptr;
@@ -611,7 +612,7 @@ void PMDActor::RecursiveMatrixMultiply(const BoneNode& node, const XMMATRIX& mat
 	}
 }
 
-void PMDActor::PlayAnimation()
+void PMDActor::StartAnimation()
 {
 	_startTime = timeGetTime();
 }
@@ -644,8 +645,7 @@ HRESULT PMDActor::CreateTransformConstantBuffer()
 		return result;
 	}
 
-	//TODO: Transform構造体がもう不要なようだが。。。
-	_mappedMatrices[0] = XMMatrixIdentity();
+	_mappedMatrices[0] = XMMatrixTranslation(_pos.x, _pos.y, _pos.z);
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC transformDescHeapDesc = {};
@@ -785,8 +785,7 @@ HRESULT PMDActor::CreateMaterialBuffers()
 
 void PMDActor::Update()
 {
-	_angle += 0.001f;
-	_mappedMatrices[0] = XMMatrixRotationY(_angle);
+	_mappedMatrices[0] = XMMatrixTranslation(_pos.x, _pos.y, _pos.z);
 	MotionUpdate();
 }
 
@@ -846,7 +845,8 @@ void PMDActor::MotionUpdate()
 	// これによって_boneMatrices[]はモデル行列になる
 	RecursiveMatrixMultiply(_boneNodeTable["センター"], XMMatrixIdentity());
 
-	IKSolve();
+	//TODO: IKが不正動作を起こすモーションファイルも使いたいのでいったん止める
+	//IKSolve();
 
 	std::copy(_boneMatrices.begin(), _boneMatrices.end(), &_mappedMatrices[1]);
 }

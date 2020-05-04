@@ -10,31 +10,21 @@
 class PMDActor
 {
 public:
-	PMDActor(class Dx12Wrapper& dx12, class PMDRenderer& renderer, const std::string& modelPath);
+	PMDActor(class Dx12Wrapper& dx12, const std::string& modelPath);
 	HRESULT LoadVMDFile(const std::string& path);
-	void PlayAnimation();
+	void Move(float x, float y, float z);
+	void StartAnimation();
 	void Update();
 	void Draw();
 
 private:
 	class Dx12Wrapper& _dx12;
-	class PMDRenderer& _renderer;
 
-	float _angle = 0.0f;
+	DirectX::XMFLOAT3 _pos = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-	// XMMatrixをにヒープに確保するときに、XMMatrixはSIMD計算のために
-	// 16バイトアラインメントになっているため、対応できるようにnewを
-	// _aligned_mallocで実装したクラスを用意する
-	struct Transform
-	{
-		void* operator new(size_t size);
-		DirectX::XMMATRIX world;
-	};
-
-	Transform _transform;
 	DirectX::XMMATRIX* _mappedMatrices = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _transformDescHeap = nullptr;
 

@@ -52,19 +52,37 @@ bool Application::Init()
 	_dx12.reset(new Dx12Wrapper(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(*_dx12));
 
-	// TODO:決め打ちでなく外からファイル名を指定したい
-	std::string strModelPath = "model/初音ミク.pmd";
-	//std::string strModelPath = "model/初音ミクmetal.pmd";
-	//std::string strModelPath = "model/巡音ルカ.pmd";
-	_pmdActor.reset(new PMDActor(*_dx12, *_pmdRenderer, strModelPath));
+	// モデルを複数配置
+	_actor = std::make_shared<PMDActor>(*_dx12, "model/初音ミク.pmd");
+	_actor->LoadVMDFile("motion/yagokoro.vmd");
+	_actor->Move(-10.0f, 0.0f, 0.0f);
+	_pmdRenderer->AddActor(_actor);
 
-	//std::string strMotionPath = "motion/pose.vmd";
-	//std::string strMotionPath = "motion/swing.vmd";
-	//std::string strMotionPath = "motion/swing2.vmd";
-	std::string strMotionPath = "motion/squat.vmd";
-	//std::string strMotionPath = "motion/motion.vmd";
-	_pmdActor->LoadVMDFile(strMotionPath);
-	_pmdActor->PlayAnimation();
+	const std::shared_ptr<PMDActor>& ruka = std::make_shared<PMDActor>(*_dx12, "model/巡音ルカ.pmd");
+	ruka->LoadVMDFile("motion/yagokoro.vmd");
+	_pmdRenderer->AddActor(ruka);
+
+	const std::shared_ptr<PMDActor>& haku = std::make_shared<PMDActor>(*_dx12, "model/弱音ハク.pmd");
+	haku->LoadVMDFile("motion/yagokoro.vmd");
+	haku->Move(-5.0f, 0.0f, 5.0f);
+	_pmdRenderer->AddActor(haku);
+
+	const std::shared_ptr<PMDActor>& rin = std::make_shared<PMDActor>(*_dx12, "model/鏡音リン.pmd");
+	rin->LoadVMDFile("motion/yagokoro.vmd");
+	rin->Move(10.0f, 0.0f, 10.0f);
+	_pmdRenderer->AddActor(rin);
+
+	const std::shared_ptr<PMDActor>& meiko = std::make_shared<PMDActor>(*_dx12, "model/咲音メイコ.pmd");
+	meiko->LoadVMDFile("motion/yagokoro.vmd");
+	meiko->Move(-10.0f, 0.0f, 10.0f);
+	_pmdRenderer->AddActor(meiko);
+
+	const std::shared_ptr<PMDActor>& kaito = std::make_shared<PMDActor>(*_dx12, "model/カイト.pmd");
+	kaito->LoadVMDFile("motion/yagokoro.vmd");
+	kaito->Move(10.0f, 0.0f, 0.0f);
+	_pmdRenderer->AddActor(kaito);
+
+	_actor->StartAnimation();
 
 	return true;
 }
@@ -88,10 +106,10 @@ void Application::Run()
 		}
 
 		_dx12->BeginDraw();
-		_pmdRenderer->PrepareDraw();
+		_pmdRenderer->BeforeDraw();
 		_dx12->SetCamera(); // PrepareDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
-		_pmdActor->Update();
-		_pmdActor->Draw();
+		_pmdRenderer->Update();
+		_pmdRenderer->Draw();
 		_dx12->Draw();
 		_dx12->EndDraw();
 	}
