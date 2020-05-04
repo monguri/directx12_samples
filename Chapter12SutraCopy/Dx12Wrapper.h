@@ -65,10 +65,6 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _rtvHeaps = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _dsvHeap = nullptr;
 
-	CD3DX12_VIEWPORT _viewport;
-	CD3DX12_RECT _scissorrect;
-
-
 	ComPtr<ID3D12Resource> _peraVB = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;

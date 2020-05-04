@@ -414,9 +414,6 @@ HRESULT Dx12Wrapper::CreateFinalRenderTarget(const DXGI_SWAP_CHAIN_DESC1& swapch
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 
-	_viewport = CD3DX12_VIEWPORT(_backBuffers[0].Get());
-	_scissorrect = CD3DX12_RECT(0, 0, swapchainDesc.Width, swapchainDesc.Height);
-
 	return result;
 }
 
@@ -992,8 +989,11 @@ void Dx12Wrapper::BeginDraw()
 	_cmdList->ClearRenderTargetView(rtvHeapPointer, clearColor, 0, nullptr);
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-	_cmdList->RSSetViewports(1, &_viewport);
-	_cmdList->RSSetScissorRects(1, &_scissorrect);
+	const SIZE& winSize = Application::Instance().GetWindowSize();
+	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
+	_cmdList->RSSetViewports(1, &viewport);
+	CD3DX12_RECT scissorrect = CD3DX12_RECT(0, 0, winSize.cx, winSize.cy);
+	_cmdList->RSSetScissorRects(1, &scissorrect);
 
 #if 0 // UVグラデーション描画
 	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
@@ -1034,6 +1034,12 @@ void Dx12Wrapper::Draw()
 	// レンダーターゲットをクリアする
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
 	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
+
+	const SIZE& winSize = Application::Instance().GetWindowSize();
+	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
+	_cmdList->RSSetViewports(1, &viewport);
+	CD3DX12_RECT scissorrect = CD3DX12_RECT(0, 0, winSize.cx, winSize.cy);
+	_cmdList->RSSetScissorRects(1, &scissorrect);
 
 	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
 	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
