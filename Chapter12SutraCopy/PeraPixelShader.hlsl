@@ -33,3 +33,24 @@ float4 PeraDownToneLevelPS(PeraType input) : SV_TARGET
 	return float4(col.rgb - fmod(col.rgb, 0.25f), 1.0f);
 }
 
+float4 Pera9AveragePS(PeraType input) : SV_TARGET
+{
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+
+	float4 ret = 0;
+	ret += tex.Sample(smp, input.uv + float2(-dx, -dy)); // ¶ã
+	ret += tex.Sample(smp, input.uv + float2(0.0f, -dy)); // ã
+	ret += tex.Sample(smp, input.uv + float2(dx, -dy)); // ‰Eã
+	ret += tex.Sample(smp, input.uv + float2(-dx, 0.0f)); // ¶
+	ret += tex.Sample(smp, input.uv + float2(0.0f, 0.0f)); // ©•ª
+	ret += tex.Sample(smp, input.uv + float2(dx, 0.0f)); // ‰E
+	ret += tex.Sample(smp, input.uv + float2(-dx, dy)); // ¶‰º
+	ret += tex.Sample(smp, input.uv + float2(0.0f, dy)); // ‰º
+	ret += tex.Sample(smp, input.uv + float2(dx, dy)); // ‰E‰º
+	return ret / 9.0f;
+}
+
