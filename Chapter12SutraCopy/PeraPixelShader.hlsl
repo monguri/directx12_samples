@@ -56,3 +56,25 @@ float4 Pera9AveragePS(PeraType input) : SV_TARGET
 	return ret / 9.0f;
 }
 
+float4 PeraEmbossPS(PeraType input) : SV_TARGET
+{
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+
+	float4 ret = 0;
+	// 2 * は、効果をよりはっきり見せるためにやっている
+	// ただし色が急激に変わる境界部分ではディザーっぽくなる
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 2; // 左上
+	ret += tex.Sample(smp, input.uv + float2(0.0f, -2 * dy)); // 上
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 0; // 右上
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0.0f)); // 左
+	ret += tex.Sample(smp, input.uv + float2(0.0f, 0.0f)); // 自分
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0.0f)) * -1; // 右
+	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0; // 左下
+	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)) * -1; // 下
+	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * -2; // 右下
+	return ret;
+}
