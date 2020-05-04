@@ -680,10 +680,16 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraEmbossPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // シャープネス
+#elif 0 // シャープネス
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraSharpnessPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#elif 1 // エッジ抽出
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraEdgeDetectionPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 #endif
