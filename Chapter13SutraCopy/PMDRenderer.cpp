@@ -26,7 +26,7 @@ PMDRenderer::PMDRenderer(Dx12Wrapper& dx12) : _dx12(dx12)
 
 HRESULT PMDRenderer::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE descTblRange[4] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
+	CD3DX12_DESCRIPTOR_RANGE descTblRange[5] = {}; // VS用のCBVとPS用のCBVとテクスチャ用のSRV
 	// SceneData b0
 	descTblRange[0].Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
@@ -51,11 +51,18 @@ HRESULT PMDRenderer::CreateRootSignature()
 		4, // 通常テクスチャとsphとspatとCLUT
 		0
 	);
+	// シャドウマップ
+	descTblRange[4].Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+		1, // 通常テクスチャとsphとspatとCLUT
+		4
+	);
 
-	CD3DX12_ROOT_PARAMETER rootParams[3] = {};
+	CD3DX12_ROOT_PARAMETER rootParams[4] = {};
 	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]); // SceneData
 	rootParams[1].InitAsDescriptorTable(1, &descTblRange[1]); // Transform
 	rootParams[2].InitAsDescriptorTable(2, &descTblRange[2]); // Material
+	rootParams[3].InitAsDescriptorTable(1, &descTblRange[4]); // Material
 
 	// サンプラ用のルートシグネチャ設定
 	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
@@ -70,7 +77,7 @@ HRESULT PMDRenderer::CreateRootSignature()
 	// ルートシグネチャ作成
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Init(
-		3,
+		4,
 		rootParams,
 		2,
 		samplerDescs,
@@ -111,8 +118,8 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 {
 	// シェーダの準備
 	// TODO:これはグラフィックスパイプラインステートが完成したら解放されてもよい？
-	ComPtr<ID3DBlob> _vsBlob = nullptr;
-	ComPtr<ID3DBlob> _psBlob = nullptr;
+	ComPtr<ID3DBlob> vsBlob = nullptr;
+	ComPtr<ID3DBlob> psBlob = nullptr;
 
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 	HRESULT result = D3DCompileFromFile(
@@ -123,7 +130,7 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 		"vs_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0,
-		&_vsBlob,
+		&vsBlob,
 		&errorBlob
 	);
 	if (!_dx12.CheckResult(result, errorBlob.Get())){
@@ -139,7 +146,7 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 		"ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0,
-		&_psBlob,
+		&psBlob,
 		&errorBlob
 	);
 	if (!_dx12.CheckResult(result, errorBlob.Get())){
@@ -214,8 +221,8 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 	// グラフィックスパイプラインステート作成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
 	gpipeline.pRootSignature = _rootsignature.Get();
-	gpipeline.VS = CD3DX12_SHADER_BYTECODE(_vsBlob.Get());
-	gpipeline.PS = CD3DX12_SHADER_BYTECODE(_psBlob.Get());
+	gpipeline.VS = CD3DX12_SHADER_BYTECODE(vsBlob.Get());
+	gpipeline.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
 	gpipeline.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 	gpipeline.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
@@ -234,7 +241,39 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 	gpipeline.SampleDesc.Count = 1;
 	gpipeline.SampleDesc.Quality = 0;
 
-	result = _dx12.Device()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pipelinestate.ReleaseAndGetAddressOf()));
+	result = _dx12.Device()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_pls.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	// シャドウマップ描画パイプライン作成
+	result = D3DCompileFromFile(
+		L"BasicVertexShader.hlsl",
+		nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"ShadowVS",
+		"vs_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		&vsBlob,
+		&errorBlob
+	);
+	if (!_dx12.CheckResult(result, errorBlob.Get())){
+		assert(false);
+		return result;
+	}
+
+	// ピクセルシェーダ不要
+	gpipeline.VS = CD3DX12_SHADER_BYTECODE(vsBlob.Get());
+	gpipeline.PS.BytecodeLength = 0;
+	gpipeline.PS.pShaderBytecode = nullptr;
+	// レンダーターゲット不要
+	gpipeline.NumRenderTargets = 0;
+	gpipeline.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+
+	result = _dx12.Device()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_plsShadow.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
@@ -259,16 +298,33 @@ void PMDRenderer::Update()
 
 void PMDRenderer::BeforeDraw()
 {
-	_dx12.CommandList()->SetPipelineState(_pipelinestate.Get());
+	_dx12.CommandList()->SetPipelineState(_pls.Get());
+	_dx12.CommandList()->SetGraphicsRootSignature(_rootsignature.Get());
+	_dx12.CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
+void PMDRenderer::BeforeDrawFromLight()
+{
+	_dx12.CommandList()->SetPipelineState(_plsShadow.Get());
 	_dx12.CommandList()->SetGraphicsRootSignature(_rootsignature.Get());
 	_dx12.CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void PMDRenderer::Draw()
 {
+	bool isShadow = false;
 	for (const std::shared_ptr<PMDActor>& actor : _actors)
 	{
-		actor->Draw();
+		actor->Draw(isShadow);
+	}
+}
+
+void PMDRenderer::DrawFromLight()
+{
+	bool isShadow = true;
+	for (const std::shared_ptr<PMDActor>& actor : _actors)
+	{
+		actor->Draw(isShadow);
 	}
 }
 

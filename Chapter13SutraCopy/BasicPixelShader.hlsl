@@ -3,6 +3,8 @@ Texture2D<float4> tex : register(t0);
 Texture2D<float4> sph : register(t1);
 Texture2D<float4> spa : register(t2);
 Texture2D<float4> toon : register(t3); // CLUT
+// シャドウマップ
+Texture2D<float4> lightDepthTex : register(t4);
 SamplerState smp : register(s0);
 SamplerState smpToon : register(s1);
 
@@ -34,9 +36,24 @@ float4 BasicPS(BasicType input) : SV_TARGET
 
 	float4 texColor = tex.Sample(smp, input.uv);
 
-	return max(
+	float4 ret = max(
 		saturate(toonDif * diffuse * texColor * sph.Sample(smp, sphereMapUV))
 		+ saturate(spa.Sample(smp, sphereMapUV) * texColor + float4(specularB * specular.rgb, 1)),
 		float4(ambient * texColor.rgb, 1)
 	);
+
+	// シャドウマップによる陰描画
+	// NDCへの変換
+	float3 posFromLightVP = input.tpos.xyz / input.tpos.w;
+	// UVへの変換
+	float2 shadowUV = (posFromLightVP + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
+	float depthFromLight = lightDepthTex.Sample(smp, input.uv);
+	float shadowWeight = 1.0f;
+	if (depthFromLight < posFromLightVP.z)
+	{
+		// 陰に入ったら半分の輝度にする
+		shadowWeight = 0.5f; 
+	}
+
+	return float4(ret.rgb * shadowWeight, ret.a);
 }

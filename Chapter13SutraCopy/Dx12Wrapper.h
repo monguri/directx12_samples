@@ -25,9 +25,9 @@ public:
 	ComPtr<ID3D12Resource> GetWhiteTexture();
 	ComPtr<ID3D12Resource> GetBlackTexture();
 
+	void PreDrawShadow();
 	void PreDrawToPera1();
 	void PostDrawToPera1();
-	void SetCamera();
 	void DrawHorizontalBokeh();
 	void Draw();
 	void Flip();
@@ -53,6 +53,7 @@ private:
 
 	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
+	ComPtr<ID3D12Resource> _lightDepthBuffer = nullptr;
 	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
 
 	struct SceneMatrix* _mappedScene = nullptr;
@@ -94,11 +95,12 @@ private:
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreatePeraVertex();
 	HRESULT CreateEffectBufferAndView();
+	HRESULT CreateDepthBuffer();
+	HRESULT CreateDSV();
 	HRESULT CreateDepthSRV();
 	HRESULT CreateBokehParamResouce();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
-	HRESULT CreateDepthStencil();
 	HRESULT CreateCameraConstantBuffer();
 };
 

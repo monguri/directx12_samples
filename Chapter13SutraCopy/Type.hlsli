@@ -2,6 +2,7 @@
 struct BasicType
 {
 	float4 svpos : SV_POSITION;
+	float4 tpos : TPOS;
 	float4 normal : NORMAL0;
 	float4 vnormal : NORMAL1;
 	float2 uv : TEXCOORD;

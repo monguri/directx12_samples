@@ -15,12 +15,13 @@ public:
 	void Move(float x, float y, float z);
 	void StartAnimation();
 	void Update();
-	void Draw();
+	void Draw(bool isShadow);
 
 private:
 	class Dx12Wrapper& _dx12;
 
 	DirectX::XMFLOAT3 _pos = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+	unsigned int _indexNum = 0;
 
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;

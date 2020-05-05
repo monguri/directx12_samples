@@ -105,12 +105,17 @@ void Application::Run()
 			break;
 		}
 
-		_dx12->PreDrawToPera1();
-		_pmdRenderer->BeforeDraw();
-		_dx12->SetCamera(); // BeforeDraw()でパイプラインとルートシグネチャをPMD用にに設定するのでそのあとである必要がある
 		_pmdRenderer->Update();
+
+		_pmdRenderer->BeforeDrawFromLight();
+		_dx12->PreDrawShadow();
+		_pmdRenderer->DrawFromLight();
+
+		_pmdRenderer->BeforeDraw();
+		_dx12->PreDrawToPera1();
 		_pmdRenderer->Draw();
 		_dx12->PostDrawToPera1();
+
 		_dx12->DrawHorizontalBokeh();
 		_dx12->Draw();
 		_dx12->Flip();

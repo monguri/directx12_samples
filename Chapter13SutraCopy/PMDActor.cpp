@@ -200,8 +200,7 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	std::vector<unsigned char> vertices(vertNum * pmdvertex_size);
 	fread(vertices.data(), vertices.size(), 1, fp);
 
-	unsigned int indicesNum;
-	fread(&indicesNum, sizeof(indicesNum), 1, fp);
+	fread(&_indexNum, sizeof(_indexNum), 1, fp);
 
 	HRESULT result = _dx12.Device()->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -233,7 +232,7 @@ HRESULT PMDActor::LoadPMDFileAndCreateMeshBuffers(const std::string& path)
 	_vbView.SizeInBytes = (UINT)vertices.size();
 	_vbView.StrideInBytes = pmdvertex_size;
 
-	std::vector<unsigned short> indices(indicesNum);
+	std::vector<unsigned short> indices(_indexNum);
 	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);
 
 	result = _dx12.Device()->CreateCommittedResource(
@@ -1085,7 +1084,7 @@ void PMDActor::IKSolve()
 	}
 }
 
-void PMDActor::Draw()
+void PMDActor::Draw(bool isShadow)
 {
 	_dx12.CommandList()->IASetVertexBuffers(0, 1, &_vbView);
 	_dx12.CommandList()->IASetIndexBuffer(&_ibView);
@@ -1102,12 +1101,21 @@ void PMDActor::Draw()
 	unsigned int idxOffset = 0;
 	UINT cbvsrvIncSize = _dx12.Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5; // CBVと通常テクスチャとsphとspaとCLUTのSRV
 
-	for (const Material& m : _materials)
+	if (isShadow)
 	{
-		_dx12.CommandList()->SetGraphicsRootDescriptorTable(2, materialH);
-		_dx12.CommandList()->DrawIndexedInstanced(m.indicesNum, 2, idxOffset, 0, 0);
-		materialH.ptr += cbvsrvIncSize;
-		idxOffset += m.indicesNum;
+		// シャドウマップ描画ではマテリアルごとにドローコールを分ける必要がない
+		_dx12.CommandList()->DrawIndexedInstanced(_indexNum, 1, 0, 0, 0);
+	}
+	else
+	{
+		for (const Material& m : _materials)
+		{
+			_dx12.CommandList()->SetGraphicsRootDescriptorTable(2, materialH);
+			// 本体と影モデルの2つをインスタンス番号を分けて描画する。
+			_dx12.CommandList()->DrawIndexedInstanced(m.indicesNum, 2, idxOffset, 0, 0);
+			materialH.ptr += cbvsrvIncSize;
+			idxOffset += m.indicesNum;
+		}
 	}
 }
 
