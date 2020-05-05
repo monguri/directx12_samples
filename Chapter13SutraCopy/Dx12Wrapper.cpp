@@ -774,6 +774,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		assert(false);
 		return result;
 	}
+#if 0 // 水平ガウシアンブラー
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraHorizontalBokehPS", "ps_5_0",
@@ -783,6 +784,17 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		assert(false);
 		return result;
 	}
+#else
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+	if (!CheckResult(result, errorBlob.Get())) {
+		assert(false);
+		return result;
+	}
+#endif
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsDesc = {};
 	gpsDesc.VS = CD3DX12_SHADER_BYTECODE(vsBlob.Get());
@@ -815,7 +827,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
-#if 0 // ポストプロセスなし
+#if 1 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
@@ -869,7 +881,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraGaussianBlurPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // 垂直ガウシアンブラー
+#elif 0 // 垂直ガウシアンブラー
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraVerticalBokehPS", "ps_5_0",
