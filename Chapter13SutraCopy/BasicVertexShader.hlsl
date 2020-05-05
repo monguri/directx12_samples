@@ -20,7 +20,8 @@ float4 pos : POSITION,
 float4 normal : NORMAL,
 float2 uv : TEXCOORD,
 min16uint2 boneno : BONE_NO,
-min16uint2 weight : WEIGHT
+min16uint2 weight : WEIGHT,
+uint instNo : SV_InstanceID
 )
 {
 	BasicType output;
@@ -29,7 +30,10 @@ min16uint2 weight : WEIGHT
 	matrix bm = bones[boneno[0]] * w + bones[boneno[1]] * (1.0f - w);
 	pos = mul(bm, pos);
 	pos = mul(world, pos);
-	pos = mul(shadow, pos);
+	if (instNo > 0)
+	{
+		pos = mul(shadow, pos);
+	}
 	output.svpos = mul(mul(proj, view), pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);

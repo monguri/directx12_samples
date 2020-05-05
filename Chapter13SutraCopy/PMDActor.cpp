@@ -1105,7 +1105,7 @@ void PMDActor::Draw()
 	for (const Material& m : _materials)
 	{
 		_dx12.CommandList()->SetGraphicsRootDescriptorTable(2, materialH);
-		_dx12.CommandList()->DrawIndexedInstanced(m.indicesNum, 1, idxOffset, 0, 0);
+		_dx12.CommandList()->DrawIndexedInstanced(m.indicesNum, 2, idxOffset, 0, 0);
 		materialH.ptr += cbvsrvIncSize;
 		idxOffset += m.indicesNum;
 	}
