@@ -204,7 +204,9 @@ float4 PeraHorizontalBokehPS(PeraType input) : SV_TARGET
 
 	float dx = 1.0f / w;
 
-	for (int i = 0; i < 8; ++i)
+	float4 col = tex.Sample(smp, input.uv);
+	ret += bkweights[0] * col;
+	for (int i = 1; i < 8; ++i)
 	{
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(i * dx, 0.0f));
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(-i * dx, 0.0f));
@@ -212,7 +214,6 @@ float4 PeraHorizontalBokehPS(PeraType input) : SV_TARGET
 		//ret += bkweights[i] * tex.Sample(smp, input.uv + float2(-i * dx, 0.0f));
 	}
 
-	float4 col = tex.Sample(smp, input.uv);
 	return float4(ret.rgb, col.a);
 }
 
@@ -224,7 +225,9 @@ float4 PeraVerticalBokehPS(PeraType input) : SV_TARGET
 
 	float dy = 1.0f / h;
 
-	for (int i = 0; i < 8; ++i)
+	float4 col = tex.Sample(smp, input.uv);
+	ret += bkweights[0] * col;
+	for (int i = 1; i < 8; ++i)
 	{
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, i * dy));
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, -i * dy));
@@ -232,7 +235,6 @@ float4 PeraVerticalBokehPS(PeraType input) : SV_TARGET
 		//ret += bkweights[i] * tex.Sample(smp, input.uv + float2(0.0f, -i * dy));
 	}
 
-	float4 col = tex.Sample(smp, input.uv);
 	return float4(ret.rgb, col.a);
 }
 
@@ -248,13 +250,14 @@ float4 PeraVerticalBokehAndDistortionPS(PeraType input) : SV_TARGET
 	float2 nmTex = distex.Sample(smp, input.uv).xy;
 	nmTex = nmTex * 2.0f - 1.0f;
 	
-	for (int i = 0; i < 8; ++i)
+	float4 col = tex.Sample(smp, input.uv);
+	ret += bkweights[0] * col;
+	for (int i = 1; i < 8; ++i)
 	{
 		// 0.1fは、そのままだとノーマルによるUVディストーションが大きすぎるので調整項
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, i * dy) + nmTex * 0.1f);
 		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, -i * dy) + nmTex * 0.1f);
 	}
 
-	float4 col = tex.Sample(smp, input.uv);
 	return float4(ret.rgb, col.a);
 }
