@@ -24,19 +24,19 @@ float4 PeraGrayscalePS(PeraType input) : SV_TARGET
 	float4 col = tex.Sample(smp, input.uv);
 	// PAL : Y = 0.299 R + 0.587 G + 0.114 B
 	float Y = dot(col.rgb, float3(0.299f, 0.587f, 0.114f));
-	return float4(Y, Y, Y, 1.0f);
+	return float4(Y, Y, Y, col.a);
 }
 
 float4 PeraInverseColorPS(PeraType input) : SV_TARGET
 {
 	float4 col = tex.Sample(smp, input.uv);
-	return float4(1.0f - col.rgb, 1.0f);
+	return float4(1.0f - col.rgb, col.a);
 }
 
 float4 PeraDownToneLevelPS(PeraType input) : SV_TARGET
 {
 	float4 col = tex.Sample(smp, input.uv);
-	return float4(col.rgb - fmod(col.rgb, 0.25f), 1.0f);
+	return float4(col.rgb - fmod(col.rgb, 0.25f), col.a);
 }
 
 float4 Pera9AveragePS(PeraType input) : SV_TARGET
@@ -59,7 +59,9 @@ float4 Pera9AveragePS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)); // 左下
 	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)); // 下
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)); // 右下
-	return ret / 9.0f;
+	ret /= 9.0f;
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
 }
 
 float4 PeraEmbossPS(PeraType input) : SV_TARGET
@@ -82,7 +84,9 @@ float4 PeraEmbossPS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0; // 左下
 	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)) * -1; // 下
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * -2; // 右下
-	return ret;
+
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
 }
 
 float4 PeraSharpnessPS(PeraType input) : SV_TARGET
@@ -105,7 +109,9 @@ float4 PeraSharpnessPS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0; // 左下
 	ret += tex.Sample(smp, input.uv + float2(0.0f, 2 * dy)) * -1; // 下
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 0; // 右下
-	return ret;
+
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
 }
 
 float4 PeraEdgeDetectionPS(PeraType input) : SV_TARGET
@@ -136,7 +142,9 @@ float4 PeraEdgeDetectionPS(PeraType input) : SV_TARGET
 	Y = pow(1.0f - Y, 10);
 	// 薄いエッジを出さない
 	Y = step(0.2f, Y);
-	return float4(Y, Y, Y, 1.0f);
+
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(Y, Y, Y, col.a);
 }
 
 float4 PeraGaussianBlurPS(PeraType input) : SV_TARGET
@@ -183,7 +191,9 @@ float4 PeraGaussianBlurPS(PeraType input) : SV_TARGET
 	ret += tex.Sample(smp, input.uv + float2(1 * dx, 2 * dy)) * 4;
 	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 1;
 
-	return ret / 256;
+	ret = ret / 256;
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
 }
 
 float4 PeraHorizontalBokehPS(PeraType input) : SV_TARGET
@@ -222,7 +232,6 @@ float4 PeraVerticalBokehPS(PeraType input) : SV_TARGET
 		//ret += bkweights[i] * tex.Sample(smp, input.uv + float2(0.0f, -i * dy));
 	}
 
-	// TODO:これまでのポストプロセスもaチャンネルは維持するようにせよ
 	float4 col = tex.Sample(smp, input.uv);
 	return float4(ret.rgb, col.a);
 }
