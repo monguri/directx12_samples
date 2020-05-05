@@ -508,12 +508,12 @@ HRESULT Dx12Wrapper::CreatePeraVertex()
 	return result;
 }
 
-// TODO:–{‚É‚È‚ç‚Á‚Ä–ß‚è’l‚ðHRESULT‚Å‚È‚­bool‚É‚µ‚æ‚¤
 HRESULT Dx12Wrapper::CreateEffectBufferAndView()
 {
 	_distortionTexBuffer = LoadTextureFromFile("normal/normalmap.jpg");
 	if (_distortionTexBuffer == nullptr)
 	{
+		assert(false);
 		return E_FAIL;
 	}
 
