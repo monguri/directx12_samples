@@ -41,5 +41,6 @@ uint instNo : SV_InstanceID
 	output.uv = uv;
 	// 本ではmul(view, eye)にしているがrayはワールド座標で扱うのでviewは乗算しないのが正しい。実際にスペキュラをデバッグ表示して確認した
 	output.ray = normalize(pos.xyz - eye);
+	output.instNo = instNo;
 	return output;
 }

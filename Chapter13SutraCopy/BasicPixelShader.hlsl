@@ -15,6 +15,12 @@ cbuffer Material : register(b2)
 
 float4 BasicPS(BasicType input) : SV_TARGET
 {
+	if (input.instNo > 0)
+	{
+		// ‰eƒ‚ƒfƒ‹‚Í^‚Á•‚É‚·‚é
+		return float4(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
