@@ -7,6 +7,7 @@ cbuffer Weight : register(b0)
 };
 Texture2D<float4> tex : register(t0);
 Texture2D<float4> distex : register(t1);
+Texture2D<float> depthtex : register(t2);
 SamplerState smp : register(s0);
 
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
@@ -261,3 +262,11 @@ float4 PeraVerticalBokehAndDistortionPS(PeraType input) : SV_TARGET
 
 	return float4(ret.rgb, col.a);
 }
+
+float4 PeraDepthDebugPS(PeraType input) : SV_TARGET
+{
+	float depth = depthtex.Sample(smp, input.uv);
+	depth = pow(depth, 20);
+	return float4(depth, depth, depth, 1.0f);
+}
+

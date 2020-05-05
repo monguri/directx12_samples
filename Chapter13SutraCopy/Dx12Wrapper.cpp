@@ -276,6 +276,20 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateDepthStencil();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	result = CreateDepthSRV();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreateBokehParamResouce();
 	if (FAILED(result))
 	{
@@ -291,13 +305,6 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 	}
 
 	result = CreatePeraPipeline();
-	if (FAILED(result))
-	{
-		assert(false);
-		return;
-	}
-
-	result = CreateDepthStencil();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -545,6 +552,38 @@ HRESULT Dx12Wrapper::CreateEffectBufferAndView()
 	return result;
 }
 
+HRESULT Dx12Wrapper::CreateDepthSRV()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_depthSRVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	assert(_depthBuffer != nullptr);
+	//D3D12_RESOURCE_DESC desc = _depthBuffer->GetDesc();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	// これはデプスバッファを作った時のDXGI_FORMAT_R32_TYPELESSではエラーになる
+	//srvDesc.Format = desc.Format;
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	_dev->CreateShaderResourceView(
+		_depthBuffer.Get(),
+		&srvDesc,
+		_depthSRVHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+
+	return result;
+}
+
 HRESULT Dx12Wrapper::CreateBokehParamResouce()
 {
 	// 自分を含めて片方向8ピクセル分。標準偏差は5ピクセル。
@@ -710,8 +749,7 @@ bool Dx12Wrapper::CheckResult(HRESULT result, ID3DBlob* error) {
 
 HRESULT Dx12Wrapper::CreatePeraPipeline()
 {
-	// ペラ1を利用する2パス目のパイプライン
-	D3D12_DESCRIPTOR_RANGE range[3] = {};
+	D3D12_DESCRIPTOR_RANGE range[4] = {};
 	// ガウシアンウェイトCBVのb0
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
@@ -724,27 +762,36 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[2].BaseShaderRegister = 1;
 	range[2].NumDescriptors = 1;
+	// 深度値テクスチャSRVのt2
+	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	range[3].BaseShaderRegister = 2;
+	range[3].NumDescriptors = 1;
 
-	D3D12_ROOT_PARAMETER rp[3] = {};
+	D3D12_ROOT_PARAMETER rp[4] = {};
 	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[0].DescriptorTable.pDescriptorRanges = &range[0];
 	rp[0].DescriptorTable.NumDescriptorRanges = 1;
 
 	rp[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rp[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[1].DescriptorTable.pDescriptorRanges = &range[1];
 	rp[1].DescriptorTable.NumDescriptorRanges = 1;
 
 	rp[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rp[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[2].DescriptorTable.pDescriptorRanges = &range[2];
 	rp[2].DescriptorTable.NumDescriptorRanges = 1;
+
+	rp[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rp[3].DescriptorTable.pDescriptorRanges = &range[3];
+	rp[3].DescriptorTable.NumDescriptorRanges = 1;
 
 	D3D12_STATIC_SAMPLER_DESC sampler = CD3DX12_STATIC_SAMPLER_DESC(0);
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
-	rsDesc.NumParameters = 3;
+	rsDesc.NumParameters = 4;
 	rsDesc.pParameters = rp;
 	rsDesc.NumStaticSamplers = 1;
 	rsDesc.pStaticSamplers = &sampler;
@@ -827,7 +874,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
-#if 1 // ポストプロセスなし
+#if 0 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
@@ -893,6 +940,12 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraVerticalBokehAndDistortionPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#elif 1 // デプスデバッグ表示
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraDepthDebugPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 #endif
 	if (!CheckResult(result, errorBlob.Get())) {
 		assert(false);
@@ -914,7 +967,8 @@ HRESULT Dx12Wrapper::CreateDepthStencil()
 	// 深度バッファ作成
 	const SIZE& winSize = Application::Instance().GetWindowSize();
 	D3D12_RESOURCE_DESC depthResDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		DXGI_FORMAT_D32_FLOAT,
+		//DXGI_FORMAT_D32_FLOAT,
+		DXGI_FORMAT_R32_TYPELESS,
 		winSize.cx,
 		winSize.cy,
 		1,
@@ -926,6 +980,8 @@ HRESULT Dx12Wrapper::CreateDepthStencil()
 
 	CD3DX12_HEAP_PROPERTIES depthHeapProp(D3D12_HEAP_TYPE_DEFAULT);
 
+	// D3D12_RESOURCE_DESCをDXGI_FORMAT_R32_TYPELESSにしても、
+	// D3D12_CLEAR_VALUEをDXGI_FORMAT_R32_TYPELESSにするとエラーになる
 	CD3DX12_CLEAR_VALUE depthClearValue(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
 	
 	HRESULT result = _dev->CreateCommittedResource(
@@ -1357,6 +1413,10 @@ void Dx12Wrapper::Draw()
 	// ディストーションテクスチャのSRVをt1に設定
 	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// 深度値テクスチャのSRVをt2に設定
+	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	_cmdList->SetPipelineState(_peraPipeline2.Get());
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
