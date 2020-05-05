@@ -5,6 +5,7 @@ cbuffer SceneData : register(b0)
 {
 	matrix view;
 	matrix proj;
+	matrix shadow;
 	float3 eye;
 }
 
@@ -28,6 +29,7 @@ min16uint2 weight : WEIGHT
 	matrix bm = bones[boneno[0]] * w + bones[boneno[1]] * (1.0f - w);
 	pos = mul(bm, pos);
 	pos = mul(world, pos);
+	pos = mul(shadow, pos);
 	output.svpos = mul(mul(proj, view), pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);

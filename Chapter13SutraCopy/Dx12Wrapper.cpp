@@ -183,6 +183,7 @@ struct SceneMatrix
 {
 	XMMATRIX view;
 	XMMATRIX proj;
+	XMMATRIX shadow;
 	XMFLOAT3 eye;
 };
 
@@ -868,13 +869,13 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraGaussianBlurPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 0 // 垂直ガウシアンブラー
+#elif 1 // 垂直ガウシアンブラー
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraVerticalBokehPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // 垂直ガウシアンブラー＋ディストーション
+#elif 0 // 垂直ガウシアンブラー＋ディストーション
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraVerticalBokehAndDistortionPS", "ps_5_0",
@@ -988,6 +989,14 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	_mappedScene->view = viewMat;
 	_mappedScene->proj = projMat;
 	_mappedScene->eye = eye;
+
+	// 法線はY上方向、原点を通る平面
+	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
+	XMFLOAT3 parallelLightVec(1.0f, -1.0f, 1.0f);
+	_mappedScene->shadow = XMMatrixShadow(
+		XMLoadFloat4(&planeVec),
+		-XMLoadFloat3(&parallelLightVec) // w要素は平行光源ということで0でいい
+	);
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
