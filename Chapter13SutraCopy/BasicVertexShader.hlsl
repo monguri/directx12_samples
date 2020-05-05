@@ -5,6 +5,7 @@ cbuffer SceneData : register(b0)
 {
 	matrix view;
 	matrix proj;
+	matrix lightCamera;
 	matrix shadow;
 	float3 eye;
 }
@@ -34,7 +35,8 @@ uint instNo : SV_InstanceID
 	{
 		pos = mul(shadow, pos);
 	}
-	output.svpos = mul(mul(proj, view), pos);
+	//output.svpos = mul(mul(proj, view), pos);
+	output.svpos = mul(lightCamera, pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);
 	output.vnormal = mul(view, output.normal);

@@ -183,6 +183,7 @@ struct SceneMatrix
 {
 	XMMATRIX view;
 	XMMATRIX proj;
+	XMMATRIX lightCamera; // ライトビュープロジェクション
 	XMMATRIX shadow;
 	XMFLOAT3 eye;
 };
@@ -874,7 +875,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
-#if 0 // ポストプロセスなし
+#if 1 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
@@ -940,7 +941,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraVerticalBokehAndDistortionPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // デプスデバッグ表示
+#elif 0 // デプスデバッグ表示
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraDepthDebugPS", "ps_5_0",
@@ -1060,11 +1061,19 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 
 	// 法線はY上方向、原点を通る平面
 	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
-	XMFLOAT3 parallelLightVec(1.0f, -1.0f, 1.0f);
+	XMFLOAT4 light(-1.0f, 1.0f, -1.0f, 0.0f); // w要素は平行光源ということで0でいい
+	const XMVECTOR& lightVec = XMLoadFloat4(&light);
 	_mappedScene->shadow = XMMatrixShadow(
 		XMLoadFloat4(&planeVec),
-		-XMLoadFloat3(&parallelLightVec) // w要素は平行光源ということで0でいい
+		lightVec
 	);
+
+	const XMVECTOR& eyePos = XMLoadFloat3(&eye);
+	const XMVECTOR& targetPos = XMLoadFloat3(&target);
+	const XMVECTOR& upVec = XMLoadFloat3(&up);
+	// ビュー行列のためにライトの位置を決めねばならないので、適当に、ターゲット位置からライト方向に、本カメラとターゲットの間の距離だけ伸ばした位置にしておく
+	const XMVECTOR& lightPos = targetPos + XMVector3Normalize(lightVec) * XMVector3Length(XMVectorSubtract(targetPos, eyePos)).m128_f32[0];
+	_mappedScene->lightCamera = XMMatrixLookAtLH(lightPos, targetPos, upVec) * XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 100.0f);
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
