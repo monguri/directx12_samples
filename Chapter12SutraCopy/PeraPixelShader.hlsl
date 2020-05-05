@@ -236,3 +236,25 @@ float4 PeraVerticalBokehPS(PeraType input) : SV_TARGET
 	return float4(ret.rgb, col.a);
 }
 
+float4 PeraVerticalBokehAndDistortionPS(PeraType input) : SV_TARGET
+{
+	float4 ret = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dy = 1.0f / h;
+
+	// ノーマルマップを利用したUVディストーション
+	float2 nmTex = distex.Sample(smp, input.uv).xy;
+	nmTex = nmTex * 2.0f - 1.0f;
+	
+	for (int i = 0; i < 8; ++i)
+	{
+		// 0.1fは、そのままだとノーマルによるUVディストーションが大きすぎるので調整項
+		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, i * dy) + nmTex * 0.1f);
+		ret += bkweights[i >> 2][i % 4] * tex.Sample(smp, input.uv + float2(0.0f, -i * dy) + nmTex * 0.1f);
+	}
+
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(ret.rgb, col.a);
+}

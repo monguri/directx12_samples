@@ -192,6 +192,23 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 	EnableDebugLayer();
 #endif // _DEBUG
 
+	// テクスチャローダー関数テーブル作成
+	_loadLambdaTable["sph"] = _loadLambdaTable["spa"] = _loadLambdaTable["bmp"] = _loadLambdaTable["png"] =_loadLambdaTable["jpg"] =
+
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+	};
+
+	_loadLambdaTable["tga"] =
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromTGAFile(path.c_str(), meta, img);
+	};
+
+	_loadLambdaTable["dds"] =
+	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+		return LoadFromDDSFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+	};
+
 	HRESULT result = CreateDXGIDevice();
 	if (FAILED(result))
 	{
@@ -251,6 +268,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateEffectBufferAndView();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreateBokehParamResouce();
 	if (FAILED(result))
 	{
@@ -271,22 +295,6 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		assert(false);
 		return;
 	}
-
-	// テクスチャローダー関数テーブル作成
-	_loadLambdaTable["sph"] = _loadLambdaTable["spa"] = _loadLambdaTable["bmp"] = _loadLambdaTable["png"] =
-	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-		return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
-	};
-
-	_loadLambdaTable["tga"] =
-	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-		return LoadFromTGAFile(path.c_str(), meta, img);
-	};
-
-	_loadLambdaTable["dds"] =
-	[](const std::wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-		return LoadFromDDSFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
-	};
 
 	result = CreateDepthStencil();
 	if (FAILED(result))
@@ -500,6 +508,42 @@ HRESULT Dx12Wrapper::CreatePeraVertex()
 	return result;
 }
 
+// TODO:本にならって戻り値をHRESULTでなくboolにしよう
+HRESULT Dx12Wrapper::CreateEffectBufferAndView()
+{
+	_distortionTexBuffer = LoadTextureFromFile("normal/normalmap.jpg");
+	if (_distortionTexBuffer == nullptr)
+	{
+		return E_FAIL;
+	}
+
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_distortionSRVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_RESOURCE_DESC desc = _distortionTexBuffer->GetDesc();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = desc.Format;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	_dev->CreateShaderResourceView(
+		_distortionTexBuffer.Get(),
+		&srvDesc,
+		_distortionSRVHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+
+	return result;
+}
+
 HRESULT Dx12Wrapper::CreateBokehParamResouce()
 {
 	// 自分を含めて片方向8ピクセル分。標準偏差は5ピクセル。
@@ -671,11 +715,11 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
-	// ペラ1SRVのt0
+	// ペラ1、2SRVのt0
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
 	range[1].NumDescriptors = 1;
-	// ペラ2SRVのt1
+	// ディストーションテクスチャSVRのt1
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[2].BaseShaderRegister = 1;
 	range[2].NumDescriptors = 1;
@@ -824,10 +868,16 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraGaussianBlurPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // 垂直ガウシアンブラー
+#elif 0 // 垂直ガウシアンブラー
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraVerticalBokehPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#elif 1 // 垂直ガウシアンブラー＋ディストーション
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraVerticalBokehAndDistortionPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 #endif
@@ -1227,7 +1277,7 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ガウシアンウェイトのCBVをb0に設定
 	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
 
-	// ペラ2のSRVをt0に設定
+	// ペラ1のSRVをt0に設定
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
@@ -1282,6 +1332,10 @@ void Dx12Wrapper::Draw()
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
+
+	// ディストーションテクスチャのSRVをt1に設定
+	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	_cmdList->SetPipelineState(_peraPipeline2.Get());
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

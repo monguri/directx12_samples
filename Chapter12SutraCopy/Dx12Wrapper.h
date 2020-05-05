@@ -77,6 +77,9 @@ private:
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;
 
+	ComPtr<ID3D12DescriptorHeap> _distortionSRVHeap = nullptr;
+	ComPtr<ID3D12Resource> _distortionTexBuffer = nullptr;
+
 	ComPtr<ID3D12Resource> _bokehParamResource = nullptr;
 
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
@@ -88,6 +91,7 @@ private:
 	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreatePeraVertex();
+	HRESULT CreateEffectBufferAndView();
 	HRESULT CreateBokehParamResouce();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
