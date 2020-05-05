@@ -46,8 +46,8 @@ float4 BasicPS(BasicType input) : SV_TARGET
 	// NDC‚Ö‚Ì•ÏŠ·
 	float3 posFromLightVP = input.tpos.xyz / input.tpos.w;
 	// UV‚Ö‚Ì•ÏŠ·
-	float2 shadowUV = (posFromLightVP + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
-	float depthFromLight = lightDepthTex.Sample(smp, input.uv);
+	float2 shadowUV = (posFromLightVP.xy + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
+	float depthFromLight = lightDepthTex.Sample(smp, shadowUV);
 	float shadowWeight = 1.0f;
 	if (depthFromLight < posFromLightVP.z)
 	{
