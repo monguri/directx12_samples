@@ -578,8 +578,8 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	}
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
-	// 2枚のRTVを作るのでちょうどいい
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
+	heapDesc.NumDescriptors = 2;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
@@ -587,6 +587,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		return result;
 	}
 
+	// RTV2枚作成
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -594,7 +595,9 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
 	_dev->CreateRenderTargetView(_peraResource.Get(), &rtvDesc, handle);
 
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	// TODO:本ではこうなっているがRTVが正しいのでは
+	//handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	_dev->CreateRenderTargetView(_peraResource2.Get(), &rtvDesc, handle);
 
 	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV用ヒープ
@@ -628,14 +631,14 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	_dev->CreateShaderResourceView(
 		_peraResource.Get(),
 		&srvDesc,
-		_peraRegisterHeap->GetCPUDescriptorHandleForHeapStart()
+		handle
 	);
 
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_dev->CreateShaderResourceView(
 		_peraResource2.Get(),
 		&srvDesc,
-		_peraRegisterHeap->GetCPUDescriptorHandleForHeapStart()
+		handle
 	);
 
 	return result;
