@@ -1203,7 +1203,7 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 
 	// レンダーターゲットをペラ2に指定する
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHeapPointer.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	rtvHeapPointer.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
 
