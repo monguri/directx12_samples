@@ -733,7 +733,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
-	heapDesc.NumDescriptors = 3; // ペラ1プラス法線プラス高輝度
+	heapDesc.NumDescriptors = 4; // ペラ1プラス法線プラス高輝度プラス縮小高輝度
 	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
@@ -760,11 +760,14 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 #endif
 
-	// ブルーム用高輝度RTV。一枚だけ作る
+	// ブルーム用高輝度RTV。
 	_dev->CreateRenderTargetView(_bloomBuffers[0].Get(), &rtvDesc, handle);
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	// ブルーム用縮小高輝度RTV。
+	_dev->CreateRenderTargetView(_bloomBuffers[1].Get(), &rtvDesc, handle);
 
-	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV2枚と高輝度SRV用ヒープ
-	heapDesc.NumDescriptors = 4;
+	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV2枚と高輝度SRV2枚用ヒープ
+	heapDesc.NumDescriptors = 5;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRegisterHeap.ReleaseAndGetAddressOf()));
@@ -800,9 +803,16 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
-	// ブルーム用高輝度SRV。一枚だけ作る
+	// ブルーム用高輝度SRV。
 	_dev->CreateShaderResourceView(
 		_bloomBuffers[0].Get(),
+		&srvDesc,
+		handle
+	);
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	// ブルーム用縮小高輝度SRV。
+	_dev->CreateShaderResourceView(
+		_bloomBuffers[1].Get(),
 		&srvDesc,
 		handle
 	);
