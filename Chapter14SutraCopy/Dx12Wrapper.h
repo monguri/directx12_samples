@@ -28,7 +28,9 @@ public:
 	void PreDrawShadow();
 	void PreDrawToPera1();
 	void PostDrawToPera1();
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	void DrawHorizontalBokeh();
+#endif
 	void Draw();
 	void Flip();
 
@@ -72,8 +74,8 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _peraRegisterHeap = nullptr;
-	ComPtr<ID3D12Resource> _peraResource = nullptr;
-	ComPtr<ID3D12Resource> _peraResource2 = nullptr;
+	ComPtr<ID3D12Resource> _pera1Resources = nullptr;
+	ComPtr<ID3D12Resource> _pera1Resources2 = nullptr;
 	ComPtr<ID3D12RootSignature> _peraRS = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;

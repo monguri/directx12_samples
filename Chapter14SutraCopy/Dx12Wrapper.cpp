@@ -661,7 +661,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&clearValue,
-		IID_PPV_ARGS(_peraResource.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_pera1Resources.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
@@ -675,7 +675,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&clearValue,
-		IID_PPV_ARGS(_peraResource2.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_pera1Resources2.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
@@ -699,12 +699,12 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	_dev->CreateRenderTargetView(_peraResource.Get(), &rtvDesc, handle);
+	_dev->CreateRenderTargetView(_pera1Resources.Get(), &rtvDesc, handle);
 
 	// TODO:本ではこうなっているがRTVが正しいのでは
 	//handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	_dev->CreateRenderTargetView(_peraResource2.Get(), &rtvDesc, handle);
+	_dev->CreateRenderTargetView(_pera1Resources2.Get(), &rtvDesc, handle);
 
 	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV用ヒープ
 	heapDesc.NumDescriptors = 3;
@@ -735,14 +735,14 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	_dev->CreateShaderResourceView(
-		_peraResource.Get(),
+		_pera1Resources.Get(),
 		&srvDesc,
 		handle
 	);
 
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_dev->CreateShaderResourceView(
-		_peraResource2.Get(),
+		_pera1Resources2.Get(),
 		&srvDesc,
 		handle
 	);
@@ -896,6 +896,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
+#if 0 // ペラ2を使うパスは今は使わないないのでコメントアウトしておく
 #if 1 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -986,6 +987,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		assert(false);
 		return result;
 	}
+#endif
 
 	return result;
 }
@@ -1373,7 +1375,7 @@ void Dx12Wrapper::PreDrawToPera1()
 	// ペラ1をSRV状態からレンダーターゲット状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
 	// レンダーターゲットをペラ1に指定する
@@ -1410,10 +1412,11 @@ void Dx12Wrapper::PostDrawToPera1()
 	// ペラ1をレンダーターゲット状態からSRV状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	);
 }
 
+#if 0
 void Dx12Wrapper::DrawHorizontalBokeh()
 {
 	// Separable Gaussian Blurの1パス目。
@@ -1421,7 +1424,7 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ペラ2をSRV状態からレンダーターゲット状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource2.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources2.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
 	// レンダーターゲットをペラ2に指定する
@@ -1459,9 +1462,10 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ペラ2をレンダーターゲット状態からSRV状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResource2.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources2.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	);
 }
+#endif
 
 void Dx12Wrapper::Draw()
 {
@@ -1498,9 +1502,11 @@ void Dx12Wrapper::Draw()
 	// ガウシアンウェイトのCBVをb0に設定
 	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
 
-	// ペラ2のSRVをt0に設定
+	// ペラ1のSRVをt0に設定
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+#if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+#endif
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	// ディストーションテクスチャのSRVをt1に設定
@@ -1511,7 +1517,12 @@ void Dx12Wrapper::Draw()
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart()); // 3はルートパラメータの番号
 
+#if 1
+	_cmdList->SetPipelineState(_peraPipeline.Get());
+#else
+	// ペラ2を使うパスは今は使わないのでコメントアウト
 	_cmdList->SetPipelineState(_peraPipeline2.Get());
+#endif
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	_cmdList->IASetVertexBuffers(0, 1, &_peraVBV);
 	_cmdList->DrawInstanced(4, 1, 0, 0);

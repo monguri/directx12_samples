@@ -116,7 +116,9 @@ void Application::Run()
 		_pmdRenderer->Draw();
 		_dx12->PostDrawToPera1();
 
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 		_dx12->DrawHorizontalBokeh();
+#endif
 		_dx12->Draw();
 		_dx12->Flip();
 	}
