@@ -6,10 +6,11 @@ cbuffer Weight : register(b0)
 	//float bkweights[8];
 };
 Texture2D<float4> tex : register(t0);
-Texture2D<float4> distex : register(t1);
-Texture2D<float> depthtex : register(t2);
+Texture2D<float4> texNormal : register(t1);
+Texture2D<float4> distex : register(t2);
+Texture2D<float> depthtex : register(t3);
 // シャドウマップ
-Texture2D<float> lightDepthTex : register(t3);
+Texture2D<float> lightDepthTex : register(t4);
 SamplerState smp : register(s0);
 
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
@@ -19,6 +20,24 @@ float4 PeraUVGradPS(PeraType input) : SV_TARGET
 
 float4 PeraPS(PeraType input) : SV_TARGET
 {
+	if (input.uv.x < 0.2f && input.uv.y < 0.2f) // 深度表示
+	{
+		float depth = depthtex.Sample(smp, input.uv * 5.0f);
+		depth = 1.0f - pow(depth, 30); // 奥を0、手前を1に
+		return float4(depth, depth, depth, 1.0f);
+	}
+	else if (input.uv.x < 0.2f && input.uv.y < 0.4f) // シャドウマップ表示
+	{
+		float depth = lightDepthTex.Sample(smp, (input.uv - float2(0.0f, 0.2f)) * 5.0f);
+		depth = 1.0f - depth; // 奥を0、手前を1に
+		// 平行投影なのでpowしなくても十分みやすい
+		return float4(depth, depth, depth, 1.0f);
+	}
+	else if (input.uv.x < 0.2f && input.uv.y < 0.6f) // 法線表示
+	{
+		return texNormal.Sample(smp, (input.uv - float2(0.0f, 0.4f)) * 5.0f);
+	}
+
 	return tex.Sample(smp, input.uv);
 }
 

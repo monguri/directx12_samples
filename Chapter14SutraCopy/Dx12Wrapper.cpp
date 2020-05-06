@@ -793,17 +793,17 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
-	// ペラ1、2SRVのt0
+	// ペラ1、2SRVのt0、法線SRVのt1
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
-	range[1].NumDescriptors = 1;
-	// ディストーションテクスチャSVRのt1
+	range[1].NumDescriptors = 2;
+	// ディストーションテクスチャSVRのt2
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[2].BaseShaderRegister = 1;
+	range[2].BaseShaderRegister = 2;
 	range[2].NumDescriptors = 1;
-	// 深度値テクスチャSRVとシャドウマップSRVのt2とt3
+	// 深度値テクスチャSRVとシャドウマップSRVのt3とt4
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[3].BaseShaderRegister = 2;
+	range[3].BaseShaderRegister = 3;
 	range[3].NumDescriptors = 2;
 
 	D3D12_ROOT_PARAMETER rp[4] = {};
