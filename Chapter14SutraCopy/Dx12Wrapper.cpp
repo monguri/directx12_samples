@@ -669,19 +669,21 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		return result;
 	}
 
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	result = _dev->CreateCommittedResource(
 		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&resDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&clearValue,
-		IID_PPV_ARGS(_pera1Resources2.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_peraResources2.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
+#endif
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
@@ -701,10 +703,12 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
 	_dev->CreateRenderTargetView(_pera1Resources.Get(), &rtvDesc, handle);
 
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	// TODO:本ではこうなっているがRTVが正しいのでは
 	//handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	_dev->CreateRenderTargetView(_pera1Resources2.Get(), &rtvDesc, handle);
+	_dev->CreateRenderTargetView(_peraResources2.Get(), &rtvDesc, handle);
+#endif
 
 	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV用ヒープ
 	heapDesc.NumDescriptors = 3;
@@ -740,12 +744,14 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		handle
 	);
 
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_dev->CreateShaderResourceView(
-		_pera1Resources2.Get(),
+		_peraResources2.Get(),
 		&srvDesc,
 		handle
 	);
+#endif
 
 	return result;
 }
@@ -1424,7 +1430,7 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ペラ2をSRV状態からレンダーターゲット状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources2.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResources2.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
 	// レンダーターゲットをペラ2に指定する
@@ -1462,7 +1468,7 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ペラ2をレンダーターゲット状態からSRV状態にする
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources2.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		&CD3DX12_RESOURCE_BARRIER::Transition(_peraResources2.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	);
 }
 #endif
