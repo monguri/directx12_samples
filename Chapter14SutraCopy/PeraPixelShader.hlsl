@@ -101,7 +101,12 @@ float4 PeraPS(PeraType input) : SV_TARGET
 
 	return tex.Sample(smp, input.uv) * float4(diffB, diffB, diffB, 1.0f);
 #else // フォワード
-	return tex.Sample(smp, input.uv);
+	float w, h;
+	tex.GetDimensions(w, h);
+
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+	return tex.Sample(smp, input.uv) + Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy);
 #endif
 }
 
