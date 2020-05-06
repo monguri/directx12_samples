@@ -1112,6 +1112,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 
 	// 法線はY上方向、原点を通る平面
 	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
+	// ライトの方向ベクトルの逆方向
 	XMFLOAT4 light(-1.0f, 1.0f, -1.0f, 0.0f); // w要素は平行光源ということで0でいい
 	const XMVECTOR& lightVec = XMLoadFloat4(&light);
 	_mappedScene->shadow = XMMatrixShadow(
@@ -1355,9 +1356,9 @@ void Dx12Wrapper::PreDrawShadow()
 	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	const SIZE& winSize = Application::Instance().GetWindowSize();
-	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
+	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)shadow_definition, (float)shadow_definition);
 	_cmdList->RSSetViewports(1, &viewport);
-	CD3DX12_RECT scissorrect = CD3DX12_RECT(0, 0, winSize.cx, winSize.cy);
+	CD3DX12_RECT scissorrect = CD3DX12_RECT(0, 0, shadow_definition, shadow_definition);
 	_cmdList->RSSetScissorRects(1, &scissorrect);
 }
 

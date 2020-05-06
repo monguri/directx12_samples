@@ -62,7 +62,7 @@ HRESULT PMDRenderer::CreateRootSignature()
 	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]); // SceneData
 	rootParams[1].InitAsDescriptorTable(1, &descTblRange[1]); // Transform
 	rootParams[2].InitAsDescriptorTable(2, &descTblRange[2]); // Material
-	rootParams[3].InitAsDescriptorTable(1, &descTblRange[4]); // Material
+	rootParams[3].InitAsDescriptorTable(1, &descTblRange[4]); // ShadowMap
 
 	// サンプラ用のルートシグネチャ設定
 	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
