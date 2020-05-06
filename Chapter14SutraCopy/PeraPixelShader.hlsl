@@ -42,7 +42,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
 	}
 
-#if 1 // ディファード実験
+#if 0 // ディファード実験
 	float4 normal = texNormal.Sample(smp, input.uv);
 	normal = normal * 2.0f - 1.0f;
 
@@ -52,7 +52,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	float diffB = max(saturate(dot(-light, normal.xyz)), ambient);
 
 	return tex.Sample(smp, input.uv) * float4(diffB, diffB, diffB, 1.0f);
-#else
+#else // フォワード
 	return tex.Sample(smp, input.uv);
 #endif
 }
