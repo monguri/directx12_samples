@@ -7,10 +7,11 @@ cbuffer Weight : register(b0)
 };
 Texture2D<float4> tex : register(t0);
 Texture2D<float4> texNormal : register(t1);
-Texture2D<float4> distex : register(t2);
-Texture2D<float> depthtex : register(t3);
+Texture2D<float4> texHighLum : register(t2);
+Texture2D<float4> distex : register(t3);
+Texture2D<float> depthtex : register(t4);
 // シャドウマップ
-Texture2D<float> lightDepthTex : register(t4);
+Texture2D<float> lightDepthTex : register(t5);
 SamplerState smp : register(s0);
 
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
@@ -37,9 +38,13 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	{
 		return texNormal.Sample(smp, (input.uv - float2(0.0f, 0.4f)) * 5.0f);
 	}
-	else if (input.uv.x < 0.2f && input.uv.y < 0.8f) // カラー表示
+	else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
 	{
-		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
+#if 0 // ディファード実験
+		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
+#else // フォワード
+		return texHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 高輝度表示
+#endif
 	}
 
 #if 0 // ディファード実験

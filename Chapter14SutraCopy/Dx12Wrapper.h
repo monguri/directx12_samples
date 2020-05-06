@@ -90,6 +90,8 @@ private:
 
 	ComPtr<ID3D12Resource> _bokehParamResource = nullptr;
 
+	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffers;
+
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
 	ComPtr<ID3D12Resource> CreateBlackTexture();
@@ -104,6 +106,7 @@ private:
 	HRESULT CreateDSV();
 	HRESULT CreateDepthSRV();
 	HRESULT CreateBokehParamResouce();
+	HRESULT CreateBloomBuffer();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateCameraConstantBuffer();

@@ -308,6 +308,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateBloomBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreatePeraResouceAndView();
 	if (FAILED(result))
 	{
@@ -643,6 +650,42 @@ HRESULT Dx12Wrapper::CreateBokehParamResouce()
 	return result;
 }
 
+HRESULT Dx12Wrapper::CreateBloomBuffer()
+{
+	// FinalRenderTargetと同じ設定のバッファを2枚作る
+
+	ComPtr<ID3D12Resource> bbuff = _backBuffers[0];
+	D3D12_RESOURCE_DESC resDesc = bbuff->GetDesc();
+
+	const D3D12_HEAP_PROPERTIES& heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	float clsClr[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
+
+	for (ComPtr<ID3D12Resource>& res : _bloomBuffers)
+	{
+		HRESULT result = _dev->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&resDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&clearValue,
+			IID_PPV_ARGS(res.ReleaseAndGetAddressOf())
+		);
+		if (FAILED(result))
+		{
+			assert(false);
+			return result;
+		}
+
+		// サイズが1/2の縮小バッファにしていく
+		// このWidthとはデータサイズのことなので面積的に1/2になる
+		resDesc.Width >>= 1;
+	}
+
+	return S_OK;
+}
+
 HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 {
 	// FinalRenderTargetと同じ設定のバッファをペラ用として2枚作る
@@ -690,7 +733,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
-	heapDesc.NumDescriptors = 3; // ペラ1の2枚プラス法線
+	heapDesc.NumDescriptors = 3; // ペラ1プラス法線プラス高輝度
 	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
@@ -711,14 +754,17 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	}
 
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
+	_dev->CreateRenderTargetView(_peraResources2.Get(), &rtvDesc, handle);
 	// TODO:本ではこうなっているがRTVが正しいのでは
 	//handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	_dev->CreateRenderTargetView(_peraResources2.Get(), &rtvDesc, handle);
 #endif
 
-	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV用ヒープ
-	heapDesc.NumDescriptors = 3;
+	// ブルーム用高輝度RTV。一枚だけ作る
+	_dev->CreateRenderTargetView(_bloomBuffers[0].Get(), &rtvDesc, handle);
+
+	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV2枚と高輝度SRV用ヒープ
+	heapDesc.NumDescriptors = 4;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRegisterHeap.ReleaseAndGetAddressOf()));
@@ -754,6 +800,12 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 		);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
+	// ブルーム用高輝度SRV。一枚だけ作る
+	_dev->CreateShaderResourceView(
+		_bloomBuffers[0].Get(),
+		&srvDesc,
+		handle
+	);
 
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -793,17 +845,17 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
-	// ペラ1、2SRVのt0、法線SRVのt1
+	// ペラ1、2SRVのt0、法線SRVのt1、高輝度、縮小高輝度SRVのt2
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
-	range[1].NumDescriptors = 2;
-	// ディストーションテクスチャSVRのt2
+	range[1].NumDescriptors = 3;
+	// ディストーションテクスチャSVRのt3
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[2].BaseShaderRegister = 2;
+	range[2].BaseShaderRegister = 3;
 	range[2].NumDescriptors = 1;
-	// 深度値テクスチャSRVとシャドウマップSRVのt3とt4
+	// 深度値テクスチャSRVとシャドウマップSRVのt4とt5
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[3].BaseShaderRegister = 3;
+	range[3].BaseShaderRegister = 4;
 	range[3].NumDescriptors = 2;
 
 	D3D12_ROOT_PARAMETER rp[4] = {};
@@ -1399,7 +1451,7 @@ void Dx12Wrapper::PreDrawToPera1()
 	}
 
 	// レンダーターゲットをペラ1に指定する
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[2] = {};
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[3] = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE baseH = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
 	INT offset = 0;
 	UINT incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -1416,9 +1468,14 @@ void Dx12Wrapper::PreDrawToPera1()
 
 	// レンダーターゲットとデプスをクリアする
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
-	for (const CD3DX12_CPU_DESCRIPTOR_HANDLE& rtv : rtvs)
+	for (int i = 0; i < _countof(rtvs); ++i)
 	{
-		_cmdList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+		if (i == 2)
+		{
+			// ブルーム用高輝度ではRGBは0でクリアする
+			clearColor[0] = clearColor[1] = clearColor[2] = 0.0f;
+		}
+		_cmdList->ClearRenderTargetView(rtvs[i], clearColor, 0, nullptr);
 	}
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -1535,22 +1592,22 @@ void Dx12Wrapper::Draw()
 
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
 	// ガウシアンウェイトのCBVをb0に設定
-	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
+	_cmdList->SetGraphicsRootDescriptorTable(0, handle); // 0はルートパラメータのインデックス
 
-	// ペラ1のSRVをt0に設定
+	// ペラ1、法線、高輝度のSRVをt0t1t2に設定
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #endif
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
-	// ディストーションテクスチャのSRVをt1に設定
+	// ディストーションテクスチャのSRVをt3に設定
 	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	// 深度値テクスチャのSRVとシャドウマップのSRVをt2t3に設定
+	// 深度値テクスチャのSRVとシャドウマップのSRVをt4t5に設定
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
-	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart()); // 3はルートパラメータの番号
+	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 #if 1
 	_cmdList->SetPipelineState(_peraPipeline.Get());

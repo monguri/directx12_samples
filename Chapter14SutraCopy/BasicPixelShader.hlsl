@@ -20,6 +20,7 @@ struct PixelOutput
 {
 	float4 col : SV_Target0;
 	float4 normal : SV_Target1;
+	float4 highLum : SV_Target2;
 };
 
 PixelOutput BasicPS(BasicType input)
@@ -31,6 +32,7 @@ PixelOutput BasicPS(BasicType input)
 		output.col = float4(0.0f, 0.0f, 0.0f, 1.0f);
 		output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
 		output.normal.a = 1.0f;
+		output.highLum = float4(0.0f, 0.0f, 0.0f, 1.0f);
 		return output;
 	}
 
@@ -84,6 +86,8 @@ PixelOutput BasicPS(BasicType input)
 	output.col = float4(ret.rgb * shadowWeight, ret.a);
 	output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
 	output.normal.a = 1.0f;
+	output.highLum = (ret > 1.0f);
+	output.highLum.a = 1.0f;
 	return output;
 #endif
 }

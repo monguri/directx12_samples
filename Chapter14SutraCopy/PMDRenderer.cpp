@@ -246,9 +246,10 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 	gpipeline.InputLayout.NumElements = _countof(inputLayouts);
 	gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 	gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	gpipeline.NumRenderTargets = 2;
+	gpipeline.NumRenderTargets = 3; // カラー、法線、高輝度
 	gpipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	gpipeline.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	gpipeline.RTVFormats[2] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	gpipeline.SampleDesc.Count = 1;
 	gpipeline.SampleDesc.Quality = 0;
 
@@ -285,6 +286,7 @@ HRESULT PMDRenderer::CreateGraphicsPipeline()
 	// NumRenderTargetsで指定した枚数でないものがDXGI_FORMAT_UNKNOWNでないとCreateGraphicsPipelineState()でエラーが出る
 	gpipeline.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	gpipeline.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+	gpipeline.RTVFormats[2] = DXGI_FORMAT_UNKNOWN;
 
 	result = _dx12.Device()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(_plsShadow.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
