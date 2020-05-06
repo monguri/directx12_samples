@@ -34,6 +34,12 @@ PixelOutput BasicPS(BasicType input)
 		return output;
 	}
 
+	float4 texCol = tex.Sample(smp, input.uv);
+	float2 spUV = input.vnormal.xy;
+	spUV = (spUV + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
+	float4 sphCol = sph.Sample(smp, spUV);
+	float4 spaCol = spa.Sample(smp, spUV);
+
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
@@ -42,15 +48,10 @@ PixelOutput BasicPS(BasicType input)
 	float3 refLight = normalize(reflect(light, input.normal.xyz));
 	float specularB = pow(saturate(dot(refLight, -input.ray)), specular.a);
 
-	float2 sphereMapUV = input.vnormal.xy;
-	sphereMapUV = (sphereMapUV + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
-
-	float4 texColor = tex.Sample(smp, input.uv);
-
 	float4 ret = max(
-		saturate(toonDif * diffuse * texColor * sph.Sample(smp, sphereMapUV))
-		+ saturate(spa.Sample(smp, sphereMapUV) * texColor + float4(specularB * specular.rgb, 1)),
-		float4(ambient * texColor.rgb, 1)
+		saturate(toonDif * diffuse * texCol * sphCol)
+		+ saturate(spaCol * texCol + float4(specularB * specular.rgb, 1)),
+		float4(ambient * texCol.rgb, 1)
 	);
 
 	// シャドウマップによる陰描画
