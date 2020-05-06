@@ -7,6 +7,7 @@ Texture2D<float4> toon : register(t3); // CLUT
 Texture2D<float> lightDepthTex : register(t4);
 SamplerState smp : register(s0);
 SamplerState smpToon : register(s1);
+SamplerComparisonState shadowSmp : register(s2);
 
 cbuffer Material : register(b2)
 {
@@ -47,13 +48,19 @@ float4 BasicPS(BasicType input) : SV_TARGET
 	float3 posFromLightVP = input.tpos.xyz / input.tpos.w;
 	// UV‚Ö‚Ì•ÏŠ·
 	float2 shadowUV = (posFromLightVP.xy + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f);
-	float depthFromLight = lightDepthTex.Sample(smp, shadowUV);
+
 	float shadowWeight = 1.0f;
-	if (depthFromLight < posFromLightVP.z - 0.001f)
+#if 0 // Ž©—Í‚Å‚Ì”äŠr
+	float depthFromLight = lightDepthTex.Sample(smp, shadowUV);
+	if (depthFromLight < posFromLightVP.z - 0.005f)
 	{
 		// ‰A‚É“ü‚Á‚½‚ç”¼•ª‚Ì‹P“x‚É‚·‚é
 		shadowWeight = 0.5f; 
 	}
+#else // SamplerComparisonState‚ðŽg‚Á‚½”äŠr
+	float isShadow = lightDepthTex.SampleCmp(shadowSmp, shadowUV, posFromLightVP.z - 0.005f);
+	shadowWeight = lerp(0.5f, 1.0f, isShadow);
+#endif
 
 	return float4(ret.rgb * shadowWeight, ret.a);
 }

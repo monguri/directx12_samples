@@ -62,10 +62,10 @@ HRESULT PMDRenderer::CreateRootSignature()
 	rootParams[0].InitAsDescriptorTable(1, &descTblRange[0]); // SceneData
 	rootParams[1].InitAsDescriptorTable(1, &descTblRange[1]); // Transform
 	rootParams[2].InitAsDescriptorTable(2, &descTblRange[2]); // Material
-	rootParams[3].InitAsDescriptorTable(1, &descTblRange[4]); // ShadowMap
+	rootParams[3].InitAsDescriptorTable(1, &descTblRange[4]); // 
 
 	// サンプラ用のルートシグネチャ設定
-	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[2] = {};
+	CD3DX12_STATIC_SAMPLER_DESC samplerDescs[3] = {};
 	samplerDescs[0].Init(0);
 	samplerDescs[1].Init(
 		1,
@@ -73,13 +73,23 @@ HRESULT PMDRenderer::CreateRootSignature()
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
 	);
+	samplerDescs[2].Init(
+		2,
+		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, // 比較結果をバイリニア補間
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		0.0f, // MipLODBias
+		1, // MaxAnisotoropy 深度傾斜を有効にする
+		D3D12_COMPARISON_FUNC_LESS_EQUAL // <= であれば1.0。そうでなければ0.0
+	);
 
 	// ルートシグネチャ作成
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Init(
 		4,
 		rootParams,
-		2,
+		3,
 		samplerDescs,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
