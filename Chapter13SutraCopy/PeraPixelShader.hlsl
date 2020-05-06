@@ -8,6 +8,8 @@ cbuffer Weight : register(b0)
 Texture2D<float4> tex : register(t0);
 Texture2D<float4> distex : register(t1);
 Texture2D<float> depthtex : register(t2);
+// シャドウマップ
+Texture2D<float> lightDepthTex : register(t3);
 SamplerState smp : register(s0);
 
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
@@ -267,6 +269,13 @@ float4 PeraDepthDebugPS(PeraType input) : SV_TARGET
 {
 	float depth = depthtex.Sample(smp, input.uv);
 	depth = pow(depth, 20);
+	return float4(depth, depth, depth, 1.0f);
+}
+
+float4 PeraDepthFromLightDebugPS(PeraType input) : SV_TARGET
+{
+	float depth = lightDepthTex.Sample(smp, input.uv);
+	// 平行投影なのでpowしなくても十分みやすい
 	return float4(depth, depth, depth, 1.0f);
 }
 

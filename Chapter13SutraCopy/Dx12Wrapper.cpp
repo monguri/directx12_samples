@@ -784,7 +784,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[2].BaseShaderRegister = 1;
 	range[2].NumDescriptors = 1;
-	// 深度値テクスチャSRVとシャドウマップSRVのt2のt3
+	// 深度値テクスチャSRVとシャドウマップSRVのt2とt3
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[3].BaseShaderRegister = 2;
 	range[3].NumDescriptors = 2;
@@ -896,7 +896,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
-#if 1 // ポストプロセスなし
+#if 0 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
@@ -966,6 +966,12 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraDepthDebugPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+#elif 1 // シャドウマップデバッグ表示
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraDepthFromLightDebugPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 #endif
@@ -1388,9 +1394,9 @@ void Dx12Wrapper::PreDrawToPera1()
 
 	// シャドウマップSRV
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = _depthSRVHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart()); // 3はルートパラメータの番号
+	_cmdList->SetGraphicsRootDescriptorTable(3, handle); // 3はルートパラメータの番号
 
 	const SIZE& winSize = Application::Instance().GetWindowSize();
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
@@ -1501,9 +1507,10 @@ void Dx12Wrapper::Draw()
 	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	// 深度値テクスチャのSRVをt2に設定
+	// 深度値テクスチャのSRVとシャドウマップのSRVをt2t3に設定
+	handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
-	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
+	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart()); // 3はルートパラメータの番号
 
 	_cmdList->SetPipelineState(_peraPipeline2.Get());
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
