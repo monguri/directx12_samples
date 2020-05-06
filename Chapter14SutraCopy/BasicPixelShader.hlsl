@@ -16,12 +16,22 @@ cbuffer Material : register(b2)
 	float3 ambient;
 };
 
-float4 BasicPS(BasicType input) : SV_TARGET
+struct PixelOutput
+{
+	float4 col : SV_Target0;
+	float4 normal : SV_Target1;
+};
+
+PixelOutput BasicPS(BasicType input)
 {
 	if (input.instNo > 0)
 	{
 		// âeÉÇÉfÉãÇÕê^Ç¡çïÇ…Ç∑ÇÈ
-		return float4(0.0f, 0.0f, 0.0f, 1.0f);
+		PixelOutput output;
+		output.col = float4(0.0f, 0.0f, 0.0f, 1.0f);
+		output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
+		output.normal.a = 1.0f;
+		return output;
 	}
 
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
@@ -62,5 +72,10 @@ float4 BasicPS(BasicType input) : SV_TARGET
 	shadowWeight = lerp(0.5f, 1.0f, isShadow);
 #endif
 
-	return float4(ret.rgb * shadowWeight, ret.a);
+	PixelOutput output;
+	output.col = float4(ret.rgb * shadowWeight, ret.a);
+	output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
+	output.normal.a = 1.0f;
+	return output;
 }
+

@@ -1399,15 +1399,27 @@ void Dx12Wrapper::PreDrawToPera1()
 	}
 
 	// レンダーターゲットをペラ1に指定する
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[2] = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE baseH = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	INT offset = 0;
+	UINT incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	for (CD3DX12_CPU_DESCRIPTOR_HANDLE& rtv : rtvs)
+	{
+		rtv.InitOffsetted(baseH, offset);
+		offset += incSize;
+	}
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvH(_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
-	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, &dsvH);
+	_cmdList->OMSetRenderTargets(_countof(rtvs), rtvs, false, &dsvH);
 
 	// レンダーターゲットとデプスをクリアする
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
-	_cmdList->ClearRenderTargetView(rtvHeapPointer, clearColor, 0, nullptr);
+	for (const CD3DX12_CPU_DESCRIPTOR_HANDLE& rtv : rtvs)
+	{
+		_cmdList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+	}
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	// カメラ情報CBV
