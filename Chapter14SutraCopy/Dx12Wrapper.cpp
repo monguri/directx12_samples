@@ -655,18 +655,21 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	float clsClr[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
 
-	HRESULT result = _dev->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&resDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		&clearValue,
-		IID_PPV_ARGS(_pera1Resources.ReleaseAndGetAddressOf())
-	);
-	if (FAILED(result))
+	for (ComPtr<ID3D12Resource>& res : _pera1Resources)
 	{
-		assert(false);
-		return result;
+		HRESULT result = _dev->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&resDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&clearValue,
+			IID_PPV_ARGS(res.ReleaseAndGetAddressOf())
+		);
+		if (FAILED(result))
+		{
+			assert(false);
+			return result;
+		}
 	}
 
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
@@ -687,8 +690,8 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
-	heapDesc.NumDescriptors = 2;
-	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
+	heapDesc.NumDescriptors = 3; // ペラ1の2枚プラス法線
+	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
@@ -701,7 +704,11 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	_dev->CreateRenderTargetView(_pera1Resources.Get(), &rtvDesc, handle);
+	for (const ComPtr<ID3D12Resource>& res : _pera1Resources)
+	{
+		_dev->CreateRenderTargetView(res.Get(), &rtvDesc, handle);
+		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	}
 
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	// TODO:本ではこうなっているがRTVが正しいのでは
@@ -738,11 +745,15 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	srvDesc.Format = rtvDesc.Format;
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	_dev->CreateShaderResourceView(
-		_pera1Resources.Get(),
-		&srvDesc,
-		handle
-	);
+	for (const ComPtr<ID3D12Resource>& res : _pera1Resources)
+	{
+		_dev->CreateShaderResourceView(
+			res.Get(),
+			&srvDesc,
+			handle
+		);
+		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	}
 
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -1379,10 +1390,13 @@ void Dx12Wrapper::PreDrawShadow()
 void Dx12Wrapper::PreDrawToPera1()
 {
 	// ペラ1をSRV状態からレンダーターゲット状態にする
-	_cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
-	);
+	for (const ComPtr<ID3D12Resource>& res : _pera1Resources)
+	{
+		_cmdList->ResourceBarrier(
+			1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(res.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+		);
+	}
 
 	// レンダーターゲットをペラ1に指定する
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
@@ -1416,10 +1430,13 @@ void Dx12Wrapper::PreDrawToPera1()
 void Dx12Wrapper::PostDrawToPera1()
 {
 	// ペラ1をレンダーターゲット状態からSRV状態にする
-	_cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_pera1Resources.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-	);
+	for (const ComPtr<ID3D12Resource>& res : _pera1Resources)
+	{
+		_cmdList->ResourceBarrier(
+			1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(res.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		);
+	}
 }
 
 #if 0

@@ -5,6 +5,7 @@
 #include <map>
 #include <functional>
 #include <vector>
+#include <array>
 #include <wrl.h>
 #include <DirectXTex.h>
 
@@ -74,7 +75,7 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _peraRegisterHeap = nullptr;
-	ComPtr<ID3D12Resource> _pera1Resources = nullptr;
+	std::array<ComPtr<ID3D12Resource>, 2> _pera1Resources;
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	ComPtr<ID3D12Resource> _peraResources2 = nullptr;
 #endif
