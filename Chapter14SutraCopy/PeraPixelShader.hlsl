@@ -37,8 +37,24 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	{
 		return texNormal.Sample(smp, (input.uv - float2(0.0f, 0.4f)) * 5.0f);
 	}
+	else if (input.uv.x < 0.2f && input.uv.y < 0.8f) // カラー表示
+	{
+		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
+	}
 
+#if 1 // ディファード実験
+	float4 normal = texNormal.Sample(smp, input.uv);
+	normal = normal * 2.0f - 1.0f;
+
+	// とりあえずambientは適当に。ノーマルを使ったランバート反射けで、スペキュラはなし
+	const float ambient = 0.25f;
+	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
+	float diffB = max(saturate(dot(-light, normal.xyz)), ambient);
+
+	return tex.Sample(smp, input.uv) * float4(diffB, diffB, diffB, 1.0f);
+#else
 	return tex.Sample(smp, input.uv);
+#endif
 }
 
 float4 PeraGrayscalePS(PeraType input) : SV_TARGET
