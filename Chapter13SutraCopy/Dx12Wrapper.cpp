@@ -896,7 +896,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		return result;
 	}
 	
-#if 0 // ポストプロセスなし
+#if 1 // ポストプロセスなし
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraPS", "ps_5_0",
@@ -968,7 +968,7 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraDepthDebugPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
-#elif 1 // シャドウマップデバッグ表示
+#elif 0 // シャドウマップデバッグ表示
 	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PeraDepthFromLightDebugPS", "ps_5_0",
