@@ -40,6 +40,13 @@ PixelOutput BasicPS(BasicType input)
 	float4 sphCol = sph.Sample(smp, spUV);
 	float4 spaCol = spa.Sample(smp, spUV);
 
+#if 1 // ディファード実験
+	PixelOutput output;
+	output.col = float4(diffuse * texCol * sphCol + spaCol);
+	output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
+	output.normal.a = 1.0f;
+	return output;
+#else
 	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
@@ -78,5 +85,6 @@ PixelOutput BasicPS(BasicType input)
 	output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
 	output.normal.a = 1.0f;
 	return output;
+#endif
 }
 
