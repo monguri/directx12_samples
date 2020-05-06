@@ -1508,7 +1508,6 @@ void Dx12Wrapper::Draw()
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// 深度値テクスチャのSRVとシャドウマップのSRVをt2t3に設定
-	handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart()); // 3はルートパラメータの番号
 
