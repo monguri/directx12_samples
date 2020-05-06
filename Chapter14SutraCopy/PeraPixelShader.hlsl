@@ -14,6 +14,49 @@ Texture2D<float> depthtex : register(t4);
 Texture2D<float> lightDepthTex : register(t5);
 SamplerState smp : register(s0);
 
+float4 Get5x5GaussianBlur(Texture2D<float4> tex, SamplerState smp, float2 uv, float dx, float dy)
+{
+	float4 ret = 0;
+	// 最上段
+	ret += tex.Sample(smp, uv + float2(-2 * dx, -2 * dy)) * 1;
+	ret += tex.Sample(smp, uv + float2(-1 * dx, -2 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(0 * dx, -2 * dy)) * 6;
+	ret += tex.Sample(smp, uv + float2(1 * dx, -2 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(2 * dx, -2 * dy)) * 1;
+
+	// 一つ上段
+	ret += tex.Sample(smp, uv + float2(-2 * dx, -1 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(-1 * dx, -1 * dy)) * 16;
+	ret += tex.Sample(smp, uv + float2(0 * dx, -1 * dy)) * 24;
+	ret += tex.Sample(smp, uv + float2(1 * dx, -1 * dy)) * 16;
+	ret += tex.Sample(smp, uv + float2(2 * dx, -1 * dy)) * 4;
+
+	// 中断
+	ret += tex.Sample(smp, uv + float2(-2 * dx, 0 * dy)) * 6;
+	ret += tex.Sample(smp, uv + float2(-1 * dx, 0 * dy)) * 24;
+	ret += tex.Sample(smp, uv + float2(0 * dx, 0 * dy)) * 36;
+	ret += tex.Sample(smp, uv + float2(1 * dx, 0 * dy)) * 24;
+	ret += tex.Sample(smp, uv + float2(2 * dx, 0 * dy)) * 6;
+
+	// 一つ上段
+	ret += tex.Sample(smp, uv + float2(-2 * dx, 1 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(-1 * dx, 1 * dy)) * 16;
+	ret += tex.Sample(smp, uv + float2(0 * dx, 1 * dy)) * 24;
+	ret += tex.Sample(smp, uv + float2(1 * dx, 1 * dy)) * 16;
+	ret += tex.Sample(smp, uv + float2(2 * dx, 1 * dy)) * 4;
+
+	// 最下段
+	ret += tex.Sample(smp, uv + float2(-2 * dx, 2 * dy)) * 1;
+	ret += tex.Sample(smp, uv + float2(-1 * dx, 2 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(0 * dx, 2 * dy)) * 6;
+	ret += tex.Sample(smp, uv + float2(1 * dx, 2 * dy)) * 4;
+	ret += tex.Sample(smp, uv + float2(2 * dx, 2 * dy)) * 1;
+
+	ret = ret / 256;
+	float4 col = tex.Sample(smp, uv);
+	return float4(ret.rgb, col.a);
+}
+
 float4 PeraUVGradPS(PeraType input) : SV_TARGET
 {
 	return float4(input.uv, 1.0f, 1.0f);
@@ -198,45 +241,7 @@ float4 PeraGaussianBlurPS(PeraType input) : SV_TARGET
 	float dx = 1.0f / w;
 	float dy = 1.0f / h;
 
-	float4 ret = 0;
-	// 最上段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 1;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -2 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, -2 * dy)) * 6;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, -2 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 1;
-
-	// 一つ上段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -1 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -1 * dy)) * 16;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, -1 * dy)) * 24;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, -1 * dy)) * 16;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -1 * dy)) * 4;
-
-	// 中断
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0 * dy)) * 6;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 0 * dy)) * 24;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 0 * dy)) * 36;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 0 * dy)) * 24;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0 * dy)) * 6;
-
-	// 一つ上段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 1 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 1 * dy)) * 16;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 1 * dy)) * 24;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 1 * dy)) * 16;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 1 * dy)) * 4;
-
-	// 最下段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 1;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 2 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 2 * dy)) * 6;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 2 * dy)) * 4;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 1;
-
-	ret = ret / 256;
-	float4 col = tex.Sample(smp, input.uv);
-	return float4(ret.rgb, col.a);
+	return Get5x5GaussianBlur(tex, smp, input.uv, dx, dy);
 }
 
 float4 PeraHorizontalBokehPS(PeraType input) : SV_TARGET
