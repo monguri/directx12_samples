@@ -86,7 +86,8 @@ PixelOutput BasicPS(BasicType input)
 	output.col = float4(ret.rgb * shadowWeight, ret.a);
 	output.normal.rgb = (input.normal.xyz + 1.0f) * 0.5f;
 	output.normal.a = 1.0f;
-	output.highLum = (ret > 1.0f);
+	float y = dot(float3(0.299f, 0.587f, 0.114f), output.col.rgb);
+	output.highLum = y > 0.995f ? output.col : 0.0f;
 	output.highLum.a = 1.0f;
 	return output;
 #endif
