@@ -1068,6 +1068,18 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	}
 #endif
 
+	result = D3DCompileFromFile(L"PeraPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PeraBlurPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
+	result = _dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(_blurPipeline.ReleaseAndGetAddressOf()));
+	if (FAILED(result)) {
+		assert(false);
+		return result;
+	}
+
 	return result;
 }
 
@@ -1568,6 +1580,34 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	);
 }
 #endif
+
+void Dx12Wrapper::DrawShrinkTextureForBlur()
+{
+	_cmdList->SetPipelineState(_blurPipeline.Get());
+	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
+	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	_cmdList->IASetVertexBuffers(0, 1, &_peraVBV);
+
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+
+	// TODO:‘‚«‚©‚¯
+
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
+}
 
 void Dx12Wrapper::Draw()
 {

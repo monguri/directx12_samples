@@ -32,6 +32,7 @@ public:
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	void DrawHorizontalBokeh();
 #endif
+	void DrawShrinkTextureForBlur();
 	void Draw();
 	void Flip();
 
@@ -81,7 +82,9 @@ private:
 #endif
 	ComPtr<ID3D12RootSignature> _peraRS = nullptr;
 	ComPtr<ID3D12PipelineState> _peraPipeline = nullptr;
+#if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	ComPtr<ID3D12PipelineState> _peraPipeline2 = nullptr;
+#endif
 
 	ComPtr<ID3D12DescriptorHeap> _distortionSRVHeap = nullptr;
 	ComPtr<ID3D12Resource> _distortionTexBuffer = nullptr;
@@ -91,6 +94,7 @@ private:
 	ComPtr<ID3D12Resource> _bokehParamResource = nullptr;
 
 	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffers;
+	ComPtr<ID3D12PipelineState> _blurPipeline = nullptr;
 
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();

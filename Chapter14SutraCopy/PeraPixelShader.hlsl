@@ -329,3 +329,10 @@ float4 PeraDepthFromLightDebugPS(PeraType input) : SV_TARGET
 	return float4(depth, depth, depth, 1.0f);
 }
 
+float4 PeraBlurPS(PeraType input) : SV_TARGET
+{
+	float w, h;
+	tex.GetDimensions(w, h);
+	return Get5x5GaussianBlur(tex, smp, input.uv, 1.0f / w, 1.0f / h);
+}
+
