@@ -1547,10 +1547,6 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
 
-	// レンダーターゲットをクリアする
-	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
-	_cmdList->ClearRenderTargetView(rtvHeapPointer, clearColor, 0, nullptr);
-
 	const SIZE& winSize = Application::Instance().GetWindowSize();
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
 	_cmdList->RSSetViewports(1, &viewport);
@@ -1615,13 +1611,13 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	D3D12_VIEWPORT vp = {};
 	vp.MaxDepth = 1.0f;
 	vp.MinDepth = 0.0f;
-	vp.Height = desc.Height / 2;
-	vp.Width = desc.Width / 2;
+	vp.Height = desc.Height / 2.0f;
+	vp.Width = desc.Width / 2.0f;
 	D3D12_RECT sr = {};
 	sr.top = 0;
 	sr.left = 0;
-	sr.right = vp.Width;
-	sr.bottom = vp.Height;
+	sr.right = (LONG)vp.Width;
+	sr.bottom = (LONG)vp.Height;
 	for (int i = 0; i < 8; ++i)
 	{
 		_cmdList->RSSetViewports(1, &vp);
@@ -1629,14 +1625,14 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 		_cmdList->DrawInstanced(4, 1, 0, 0);
 
 		// 位置を下にずらす
-		sr.top += vp.Height;
+		sr.top += (LONG)vp.Height;
 		vp.TopLeftX = 0;
-		vp.TopLeftY = sr.top;
+		vp.TopLeftY = (float)sr.top;
 
 		// 次は半分に縮小
 		vp.Width /= 2;
 		vp.Height /= 2;
-		sr.bottom = sr.top + vp.Height;
+		sr.bottom = sr.top + (LONG)vp.Height;
 	}
 
 	_cmdList->ResourceBarrier(
@@ -1666,10 +1662,6 @@ void Dx12Wrapper::Draw()
 
 	// パイプライン以外は1パス目のものを再利用できる。レンダーターゲット設定を変えるだけでいい
 	_cmdList->OMSetRenderTargets(1, &rtvH, false, nullptr);
-
-	// レンダーターゲットをクリアする
-	float clearColor[] = {0.2f, 0.5f, 0.5f, 1.0f};
-	_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
 	const SIZE& winSize = Application::Instance().GetWindowSize();
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
