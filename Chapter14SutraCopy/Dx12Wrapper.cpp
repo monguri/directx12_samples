@@ -855,17 +855,17 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
-	// ペラ1、2SRVのt0、法線SRVのt1、高輝度、縮小高輝度SRVのt2
+	// ペラ1、2SRVのt0、法線SRVのt1、高輝度のt2、縮小高輝度SRVのt3
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
-	range[1].NumDescriptors = 3;
-	// ディストーションテクスチャSVRのt3
+	range[1].NumDescriptors = 4;
+	// ディストーションテクスチャSVRのt4
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[2].BaseShaderRegister = 3;
+	range[2].BaseShaderRegister = 4;
 	range[2].NumDescriptors = 1;
-	// 深度値テクスチャSRVとシャドウマップSRVのt4とt5
+	// 深度値テクスチャSRVとシャドウマップSRVのt5とt6
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[3].BaseShaderRegister = 4;
+	range[3].BaseShaderRegister = 5;
 	range[3].NumDescriptors = 2;
 
 	D3D12_ROOT_PARAMETER rp[4] = {};
@@ -1597,7 +1597,47 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
-	// TODO:書きかけ
+	// 4枚目のRTVが縮小高輝度バッファ
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	rtvHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * 3;
+	_cmdList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+
+	// 定数バッファの設定
+	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
+
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
+	// ガウシアンウェイトをb0、ペラ1、法線、高輝度のSRVをt0t1t2に設定するのが通常だが、ここでは高輝度だけt0に設定する
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3;
+	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
+
+	// 縮小高輝度バッファに1/2ずつ縮小していった8枚のガウシアンブラーを書き込んでいく
+	D3D12_RESOURCE_DESC desc = _bloomBuffers[0]->GetDesc();
+	D3D12_VIEWPORT vp = {};
+	vp.MaxDepth = 1.0f;
+	vp.MinDepth = 0.0f;
+	vp.Height = desc.Height / 2;
+	vp.Width = desc.Width / 2;
+	D3D12_RECT sr = {};
+	sr.top = 0;
+	sr.left = 0;
+	sr.right = vp.Width;
+	sr.bottom = vp.Height;
+	for (int i = 0; i < 8; ++i)
+	{
+		_cmdList->RSSetViewports(1, &vp);
+		_cmdList->RSSetScissorRects(1, &sr);
+		_cmdList->DrawInstanced(4, 1, 0, 0);
+
+		// 位置を下にずらす
+		sr.top += vp.Height;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = sr.top;
+
+		// 次は半分に縮小
+		vp.Width /= 2;
+		vp.Height /= 2;
+		sr.bottom = sr.top + vp.Height;
+	}
 
 	_cmdList->ResourceBarrier(
 		1,
@@ -1644,18 +1684,18 @@ void Dx12Wrapper::Draw()
 	// ガウシアンウェイトのCBVをb0に設定
 	_cmdList->SetGraphicsRootDescriptorTable(0, handle); // 0はルートパラメータのインデックス
 
-	// ペラ1、法線、高輝度のSRVをt0t1t2に設定
+	// ペラ1、法線、高輝度、縮小高輝度のSRVをt0t1t2t3に設定
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #endif
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
-	// ディストーションテクスチャのSRVをt3に設定
+	// ディストーションテクスチャのSRVをt4に設定
 	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	// 深度値テクスチャのSRVとシャドウマップのSRVをt4t5に設定
+	// 深度値テクスチャのSRVとシャドウマップのSRVをt5t6に設定
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
