@@ -1471,6 +1471,11 @@ void Dx12Wrapper::PreDrawToPera1()
 			&CD3DX12_RESOURCE_BARRIER::Transition(res.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 		);
 	}
+	// 高輝度バッファをSRV状態からレンダーターゲット状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
 
 	// レンダーターゲットをペラ1に指定する
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[3] = {};
@@ -1528,6 +1533,11 @@ void Dx12Wrapper::PostDrawToPera1()
 			&CD3DX12_RESOURCE_BARRIER::Transition(res.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 		);
 	}
+	// 高輝度バッファをレンダーターゲット状態からSRV状態にする
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
 }
 
 #if 0
@@ -1586,10 +1596,6 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 
 	_cmdList->ResourceBarrier(
 		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-	);
-	_cmdList->ResourceBarrier(
-		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
@@ -1635,10 +1641,6 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 		sr.bottom = sr.top + (LONG)vp.Height;
 	}
 
-	_cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
-	);
 	_cmdList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
