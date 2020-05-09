@@ -120,6 +120,7 @@ void Application::Run()
 		_dx12->DrawHorizontalBokeh();
 #endif
 		_dx12->DrawShrinkTextureForBlur();
+		_dx12->DrawAmbientOcclusion();
 		_dx12->Draw();
 		_dx12->Flip();
 	}

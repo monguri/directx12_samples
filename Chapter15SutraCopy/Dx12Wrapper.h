@@ -33,6 +33,7 @@ public:
 	void DrawHorizontalBokeh();
 #endif
 	void DrawShrinkTextureForBlur();
+	void DrawAmbientOcclusion();
 	void Draw();
 	void Flip();
 

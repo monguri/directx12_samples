@@ -1833,6 +1833,46 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	);
 }
 
+void Dx12Wrapper::DrawAmbientOcclusion()
+{
+
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_aoBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvBaseHandle = _aoRTVDH->GetCPUDescriptorHandleForHeapStart();
+	_cmdList->OMSetRenderTargets(1, &rtvBaseHandle, false, nullptr);
+	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
+
+	const SIZE& winSize = Application::Instance().GetWindowSize();
+
+	CD3DX12_VIEWPORT vp = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)winSize.cx, (float)winSize.cy);
+	_cmdList->RSSetViewports(1, &vp);
+
+	CD3DX12_RECT rc = CD3DX12_RECT(0, 0, winSize.cx, winSize.cy);
+	_cmdList->RSSetScissorRects(1, &rc);
+
+	// 法線テクスチャSRV
+	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
+	D3D12_GPU_DESCRIPTOR_HANDLE srvHandle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	_cmdList->SetGraphicsRootDescriptorTable(1, _peraSRVHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// 深度値テクスチャSRV
+	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
+
+	_cmdList->SetPipelineState(_aoPipeline.Get());
+	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	_cmdList->IASetVertexBuffers(0, 1, &_peraVBV);
+	_cmdList->DrawInstanced(4, 1, 0, 0);
+
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_aoBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
+}
+
 void Dx12Wrapper::Draw()
 {
 	// Separable Gaussian Blurの2パス目。直接バックバッファに描画する
