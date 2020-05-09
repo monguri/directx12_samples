@@ -186,7 +186,7 @@ struct SceneMatrix
 {
 	XMMATRIX view;
 	XMMATRIX proj;
-	XMMATRIX invproj;
+	XMMATRIX invviewproj;
 	XMMATRIX lightCamera; // ライトビュープロジェクション
 	XMMATRIX shadow;
 	XMFLOAT3 eye;
@@ -1392,7 +1392,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	_mappedScene->view = viewMat;
 	_mappedScene->proj = projMat;
 	XMVECTOR det;
-	_mappedScene->invproj = XMMatrixInverse(&det, projMat);
+	_mappedScene->invviewproj = XMMatrixInverse(&det, projMat * viewMat);
 	_mappedScene->eye = eye;
 
 	// 法線はY上方向、原点を通る平面

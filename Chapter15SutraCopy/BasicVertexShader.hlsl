@@ -4,7 +4,7 @@ cbuffer SceneData : register(b0)
 {
 	matrix view;
 	matrix proj;
-	matrix invproj;
+	matrix invviewproj;
 	matrix lightCamera;
 	matrix shadow;
 	float3 eye;
