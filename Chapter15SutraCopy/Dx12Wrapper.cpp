@@ -778,6 +778,7 @@ HRESULT Dx12Wrapper::CreateAmbientOcclusionDescriptorHeap()
 		return result;
 	}
 
+	// SRVì¬
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = rtvDesc.Format;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1175,11 +1176,37 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		"PeraBlurPS", "ps_5_0",
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+	if (!CheckResult(result, errorBlob.Get())) {
+		assert(false);
+		return result;
+	}
+
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
 	gpsDesc.NumRenderTargets = 2;
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	gpsDesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	result = _dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(_blurPipeline.ReleaseAndGetAddressOf()));
+	if (FAILED(result)) {
+		assert(false);
+		return result;
+	}
+
+	result = D3DCompileFromFile(L"SSAOPixelShader.hlsl",
+		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"SsaoPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
+	if (!CheckResult(result, errorBlob.Get())) {
+		assert(false);
+		return result;
+	}
+
+	gpsDesc.NumRenderTargets = 1;
+	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
+	gpsDesc.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+	gpsDesc.BlendState.RenderTarget[0].BlendEnable = false;
+	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
+	result = _dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(_aoPipeline.ReleaseAndGetAddressOf()));
 	if (FAILED(result)) {
 		assert(false);
 		return result;
