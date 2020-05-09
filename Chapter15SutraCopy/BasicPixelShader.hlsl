@@ -72,7 +72,8 @@ PixelOutput BasicPS(BasicType input)
 	}
 #else // SamplerComparisonState‚ðŽg‚Á‚½”äŠr
 	float isShadow = lightDepthTex.SampleCmp(shadowSmp, shadowUV, posFromLightVP.z - 0.005f);
-	shadowWeight = lerp(0.5f, 1.0f, isShadow);
+	// ‰A‚Íˆê’UƒJƒbƒg
+	//shadowWeight = lerp(0.5f, 1.0f, isShadow);
 #endif
 
 	PixelOutput output;

@@ -131,7 +131,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	}
 
 	return tex.Sample(smp, input.uv) + Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy) + saturate(bloomAccum);
-#elif 1 // 被写界深度
+#elif 0 // 被写界深度
 	// 画面中央からの深度の差を測る
 	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f)) - depthTex.Sample(smp, input.uv));
 	depthDiff = pow(depthDiff, 0.5f);
@@ -178,6 +178,8 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	}
 
 	return lerp(retColor[0], retColor[1], t);
+#else
+	return tex.Sample(smp, input.uv);
 #endif
 #endif // ディファードorフォワード
 }
