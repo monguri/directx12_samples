@@ -953,7 +953,7 @@ bool Dx12Wrapper::CheckResult(HRESULT result, ID3DBlob* error) {
 
 HRESULT Dx12Wrapper::CreatePeraPipeline()
 {
-	D3D12_DESCRIPTOR_RANGE range[4] = {};
+	D3D12_DESCRIPTOR_RANGE range[5] = {};
 	// ガウシアンウェイトCBVのb0
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
@@ -970,8 +970,12 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[3].BaseShaderRegister = 6;
 	range[3].NumDescriptors = 2;
+	// SSAOテクスチャSRVのt8
+	range[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	range[4].BaseShaderRegister = 8;
+	range[4].NumDescriptors = 1;
 
-	D3D12_ROOT_PARAMETER rp[4] = {};
+	D3D12_ROOT_PARAMETER rp[5] = {};
 	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[0].DescriptorTable.pDescriptorRanges = &range[0];
@@ -992,10 +996,15 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	rp[3].DescriptorTable.pDescriptorRanges = &range[3];
 	rp[3].DescriptorTable.NumDescriptorRanges = 1;
 
+	rp[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rp[4].DescriptorTable.pDescriptorRanges = &range[4];
+	rp[4].DescriptorTable.NumDescriptorRanges = 1;
+
 	D3D12_STATIC_SAMPLER_DESC sampler = CD3DX12_STATIC_SAMPLER_DESC(0);
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
-	rsDesc.NumParameters = 4;
+	rsDesc.NumParameters = 5;
 	rsDesc.pParameters = rp;
 	rsDesc.NumStaticSamplers = 1;
 	rsDesc.pStaticSamplers = &sampler;
@@ -1917,6 +1926,10 @@ void Dx12Wrapper::Draw()
 	// 深度値テクスチャのSRVとシャドウマップのSRVをt6t7に設定
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// SSAOテクスチャSRVをt8に設定
+	_cmdList->SetDescriptorHeaps(1, _aoSRVDH.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(4, _aoSRVDH->GetGPUDescriptorHandleForHeapStart());
 
 #if 1
 	_cmdList->SetPipelineState(_peraPipeline.Get());
