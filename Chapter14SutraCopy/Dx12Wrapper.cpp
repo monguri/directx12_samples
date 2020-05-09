@@ -662,8 +662,8 @@ HRESULT Dx12Wrapper::CreateBloomBuffer()
 			return result;
 		}
 
-		// サイズが1/2の縮小バッファにしていく
-		// このWidthとはデータサイズのことなので面積的に1/2になる
+		// 2枚目は幅が半分のバッファにする。
+		// 1/2の累乗サイズにしていく縮小バッファ8枚分をその中に縦に押し込めるので、高さは変えない
 		resDesc.Width >>= 1;
 	}
 
@@ -675,12 +675,16 @@ HRESULT Dx12Wrapper::CreateBlurForDOFBuffer()
 	// FinalRenderTargetと同じ設定のバッファを2枚作る
 
 	ComPtr<ID3D12Resource> bbuff = _backBuffers[0];
-	const D3D12_RESOURCE_DESC& resDesc = bbuff->GetDesc();
+	D3D12_RESOURCE_DESC resDesc = bbuff->GetDesc();
 
 	const D3D12_HEAP_PROPERTIES& heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
 	float clsClr[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
+
+	// 幅が半分のバッファにする。
+	// 1/2の累乗サイズにしていく縮小バッファ8枚分をその中に縦に押し込めるので、高さは変えない
+	resDesc.Width >>= 1;
 
 	HRESULT result = _dev->CreateCommittedResource(
 		&heapProp,
@@ -1682,7 +1686,7 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	D3D12_VIEWPORT vp = {};
 	vp.MaxDepth = 1.0f;
 	vp.MinDepth = 0.0f;
-	vp.Width = desc.Width / 2.0f; // TODO:なぜか、こうしてるのに、縮小高輝度レンダーターゲットは一枚目の幅は半分にならない。高さは半分になるのに。これを2.0fで割らないと、描画される幅が倍になってしまう。縮小通常レンダーターゲットの方は幅が半分になる。
+	vp.Width = desc.Width / 2.0f;
 	vp.Height = desc.Height / 2.0f;
 	D3D12_RECT sr = {};
 	sr.top = 0;

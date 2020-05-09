@@ -120,7 +120,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 
 #if 0 // ブルーム
 	float4 bloomAccum = float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float2 uvSize = float2(1.0f, 0.5f); // TODO:なぜかビューポートの設定にも関わらず、一枚目の幅が半分になってないのでそれに合わせる
+	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0.0f, 0.0f);
 	[unroll]
 	for (int i = 0; i < 8; ++i)
@@ -142,7 +142,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	float no;
 	t = modf(t, no);
 
-	float2 uvSize = float2(0.5f, 0.5f);
+	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0.0f, 0.0f);
 
 	float4 retColor[2];
@@ -410,8 +410,8 @@ BlurOutput PeraBlurPS(PeraType input) : SV_TARGET
 	float dy = 1.0f / w;
 
 	BlurOutput ret;
-	ret.col = tex.Sample(smp, input.uv);
 	ret.highLum = Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy);
+	ret.col = tex.Sample(smp, input.uv);
 	return ret;
 }
 
