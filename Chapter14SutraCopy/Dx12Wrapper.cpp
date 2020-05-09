@@ -301,6 +301,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateCameraConstantBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreateBokehParamResouce();
 	if (FAILED(result))
 	{
@@ -331,13 +338,6 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 
 	// フェンスの生成
 	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
-	{
-		assert(false);
-		return;
-	}
-
-	result = CreateCameraConstantBuffer();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -565,49 +565,6 @@ HRESULT Dx12Wrapper::CreateEffectBufferAndView()
 		_distortionTexBuffer.Get(),
 		&srvDesc,
 		_distortionSRVHeap->GetCPUDescriptorHandleForHeapStart()
-	);
-
-	return result;
-}
-
-// TODO:あとで場所をCreateDSVの下に移動する
-HRESULT Dx12Wrapper::CreateDepthSRV()
-{
-	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	heapDesc.NumDescriptors = 2;
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_depthSRVHeap.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
-	{
-		assert(false);
-		return result;
-	}
-
-	assert(_depthBuffer != nullptr);
-	//D3D12_RESOURCE_DESC desc = _depthBuffer->GetDesc();
-
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = _depthSRVHeap->GetCPUDescriptorHandleForHeapStart();
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	// これはデプスバッファを作った時のDXGI_FORMAT_R32_TYPELESSではエラーになる
-	//srvDesc.Format = desc.Format;
-	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	_dev->CreateShaderResourceView(
-		_depthBuffer.Get(),
-		&srvDesc,
-		handle
-	);
-
-	// シャドウマップのSRVも同じでスクリプタヒープにまとめる
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_dev->CreateShaderResourceView(
-		_lightDepthBuffer.Get(),
-		&srvDesc,
-		handle
 	);
 
 	return result;
@@ -1165,6 +1122,48 @@ HRESULT Dx12Wrapper::CreateDSV()
 	// シャドウマップ用DSV
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	_dev->CreateDepthStencilView(_lightDepthBuffer.Get(), &dsvDesc, handle);
+
+	return result;
+}
+
+HRESULT Dx12Wrapper::CreateDepthSRV()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.NumDescriptors = 2;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_depthSRVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	assert(_depthBuffer != nullptr);
+	//D3D12_RESOURCE_DESC desc = _depthBuffer->GetDesc();
+
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = _depthSRVHeap->GetCPUDescriptorHandleForHeapStart();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	// これはデプスバッファを作った時のDXGI_FORMAT_R32_TYPELESSではエラーになる
+	//srvDesc.Format = desc.Format;
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	_dev->CreateShaderResourceView(
+		_depthBuffer.Get(),
+		&srvDesc,
+		handle
+	);
+
+	// シャドウマップのSRVも同じでスクリプタヒープにまとめる
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	_dev->CreateShaderResourceView(
+		_lightDepthBuffer.Get(),
+		&srvDesc,
+		handle
+	);
 
 	return result;
 }
