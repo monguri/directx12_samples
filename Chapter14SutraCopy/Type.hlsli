@@ -10,6 +10,13 @@ struct BasicType
 	uint instNo : SV_InstanceID;
 };
 
+struct PixelOutput
+{
+	float4 col : SV_Target0;
+	float4 normal : SV_Target1;
+	float4 highLum : SV_Target2;
+};
+
 // ”Âƒ|ƒŠ•`‰æ—p
 struct PeraType
 {
@@ -17,3 +24,8 @@ struct PeraType
 	float2 uv : TEXCOORD;
 };
 
+struct BlurOutput
+{
+	float4 highLum : SV_Target0;
+	float4 col : SV_Target1;
+};

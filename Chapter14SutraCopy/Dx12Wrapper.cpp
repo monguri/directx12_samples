@@ -746,7 +746,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 
 	// RTV用ヒープ。これもダブルバッファの設定を使う。
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = _rtvHeaps->GetDesc();
-	heapDesc.NumDescriptors = 4; // ペラ1プラス法線プラス高輝度プラス縮小高輝度
+	heapDesc.NumDescriptors = 5; // ペラ1プラス法線プラス高輝度プラス縮小高輝度プラス被写界深度用縮小バッファ
 	HRESULT result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRTVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
@@ -773,14 +773,17 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 #endif
 
-	// ブルーム用高輝度RTV。
+	// ブルーム用高輝度RTV
 	_dev->CreateRenderTargetView(_bloomBuffers[0].Get(), &rtvDesc, handle);
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	// ブルーム用縮小高輝度RTV。
+	// ブルーム用縮小高輝度RTV
 	_dev->CreateRenderTargetView(_bloomBuffers[1].Get(), &rtvDesc, handle);
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	// 被写界深度用縮小バッファRTV
+	_dev->CreateRenderTargetView(_dofBuffer.Get(), &rtvDesc, handle);
 
-	// レンダーテクスチャSRV2枚と高輝度SRV2枚用ヒープ
-	heapDesc.NumDescriptors = 4;
+	// レンダーテクスチャSRV2枚と高輝度SRV2枚と被写界深度SRV用ヒープ
+	heapDesc.NumDescriptors = 5;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraSRVHeap.ReleaseAndGetAddressOf()));
@@ -816,6 +819,13 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	// ブルーム用縮小高輝度SRV。
 	_dev->CreateShaderResourceView(
 		_bloomBuffers[1].Get(),
+		&srvDesc,
+		handle
+	);
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	// 被写界深度用縮小バッファSRV。
+	_dev->CreateShaderResourceView(
+		_dofBuffer.Get(),
 		&srvDesc,
 		handle
 	);
@@ -858,15 +868,15 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
-	// ペラ1、2SRVのt0、法線SRVのt1、高輝度のt2、縮小高輝度SRVのt3
+	// ペラ1、2SRVのt0、法線SRVのt1、高輝度SRVのt2、縮小高輝度SRVのt3、被写界深度用SRVのt4
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
 	range[1].NumDescriptors = 4;
-	// ディストーションテクスチャSVRのt4
+	// ディストーションテクスチャSVRのt5
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[2].BaseShaderRegister = 4;
 	range[2].NumDescriptors = 1;
-	// 深度値テクスチャSRVとシャドウマップSRVのt5とt6
+	// 深度値テクスチャSRVとシャドウマップSRVのt6とt7
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[3].BaseShaderRegister = 5;
 	range[3].NumDescriptors = 2;
@@ -1077,6 +1087,9 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
 		0, psBlob.ReleaseAndGetAddressOf(), errorBlob.ReleaseAndGetAddressOf());
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
+	gpsDesc.NumRenderTargets = 2;
+	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	gpsDesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	result = _dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(_blurPipeline.ReleaseAndGetAddressOf()));
 	if (FAILED(result)) {
 		assert(false);
@@ -1643,10 +1656,18 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	);
 
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_dofBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+	);
+
 	// 4枚目のRTVが縮小高輝度バッファ
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * 3;
-	_cmdList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvBaseHandle = _peraRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[2] = {};
+	UINT rtvIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	rtvHandles[0].InitOffsetted(rtvBaseHandle, rtvIncSize * 3); // 縮小高輝度バッファ
+	rtvHandles[1].InitOffsetted(rtvBaseHandle, rtvIncSize * 4); // 被写界深度用縮小バッファ
+	_cmdList->OMSetRenderTargets(2, rtvHandles, false, nullptr);
 
 	// ガウシアンウェイトのb0
 	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
@@ -1654,9 +1675,7 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 
 	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
-	// ペラ1、法線、高輝度のSRVをt0t1t2に設定するのが通常だが、ここでは高輝度だけt0に設定する
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2;
-	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
+	_cmdList->SetGraphicsRootDescriptorTable(1, _peraSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// 縮小高輝度バッファに1/2ずつ縮小していった8枚のガウシアンブラーを書き込んでいく
 	D3D12_RESOURCE_DESC desc = _bloomBuffers[0]->GetDesc();
@@ -1690,6 +1709,11 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	_cmdList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffers[1].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	);
+
+	_cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(_dofBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	);
 }
 

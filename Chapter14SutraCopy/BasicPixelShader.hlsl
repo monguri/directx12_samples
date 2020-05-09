@@ -16,13 +16,6 @@ cbuffer Material : register(b2)
 	float3 ambient;
 };
 
-struct PixelOutput
-{
-	float4 col : SV_Target0;
-	float4 normal : SV_Target1;
-	float4 highLum : SV_Target2;
-};
-
 PixelOutput BasicPS(BasicType input)
 {
 	if (input.instNo > 0)
