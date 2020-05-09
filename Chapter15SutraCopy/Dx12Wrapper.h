@@ -99,6 +99,9 @@ private:
 
 	ComPtr<ID3D12Resource> _dofBuffer = nullptr;
 
+	ComPtr<ID3D12Resource> _aoBuffer = nullptr;
+	ComPtr<ID3D12PipelineState> _aoPipeline = nullptr;
+
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
 	ComPtr<ID3D12Resource> CreateBlackTexture();
@@ -115,6 +118,7 @@ private:
 	HRESULT CreateConstantBufferForPera();
 	HRESULT CreateBloomBuffer();
 	HRESULT CreateBlurForDOFBuffer();
+	HRESULT CreateAmbientOcclusionBuffer();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateCameraConstantBuffer();
