@@ -308,7 +308,7 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
-	result = CreateBokehParamResouce();
+	result = CreateConstantBufferForPera();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -570,7 +570,7 @@ HRESULT Dx12Wrapper::CreateEffectBufferAndView()
 	return result;
 }
 
-HRESULT Dx12Wrapper::CreateBokehParamResouce()
+HRESULT Dx12Wrapper::CreateConstantBufferForPera()
 {
 	// 自分を含めて片方向8ピクセル分。標準偏差は5ピクセル。
 	const std::vector<float>& weights = GetGaussianWeights(8, 5.0f);
@@ -747,14 +747,14 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	heapDesc.NumDescriptors = 4;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRegisterHeap.ReleaseAndGetAddressOf()));
+	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraSRVHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
 
-	handle = _peraRegisterHeap->GetCPUDescriptorHandleForHeapStart();
+	handle = _peraSRVHeap->GetCPUDescriptorHandleForHeapStart();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -1577,9 +1577,9 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	// ガウシアンウェイトのCBVをb0に設定
 	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	// ペラ1のSRVをt0に設定
-	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
+	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	_cmdList->SetPipelineState(_peraPipeline.Get());
@@ -1616,8 +1616,8 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
+	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	// ペラ1、法線、高輝度のSRVをt0t1t2に設定するのが通常だが、ここでは高輝度だけt0に設定する
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2;
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
@@ -1686,8 +1686,8 @@ void Dx12Wrapper::Draw()
 	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
+	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	// ペラ1、法線、高輝度、縮小高輝度のSRVをt0t1t2t3に設定
 #if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);

@@ -75,7 +75,7 @@ private:
 	ComPtr<ID3D12Resource> _peraVB = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW _peraVBV;
 	ComPtr<ID3D12DescriptorHeap> _peraRTVHeap = nullptr;
-	ComPtr<ID3D12DescriptorHeap> _peraRegisterHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _peraSRVHeap = nullptr;
 	std::array<ComPtr<ID3D12Resource>, 2> _pera1Resources;
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 	ComPtr<ID3D12Resource> _peraResources2 = nullptr;
@@ -110,7 +110,7 @@ private:
 	HRESULT CreateDepthBuffer();
 	HRESULT CreateDSV();
 	HRESULT CreateDepthSRV();
-	HRESULT CreateBokehParamResouce();
+	HRESULT CreateConstantBufferForPera();
 	HRESULT CreateBloomBuffer();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
