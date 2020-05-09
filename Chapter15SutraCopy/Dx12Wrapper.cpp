@@ -186,6 +186,7 @@ struct SceneMatrix
 {
 	XMMATRIX view;
 	XMMATRIX proj;
+	XMMATRIX invproj;
 	XMMATRIX lightCamera; // ライトビュープロジェクション
 	XMMATRIX shadow;
 	XMFLOAT3 eye;
@@ -1390,6 +1391,8 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	}
 	_mappedScene->view = viewMat;
 	_mappedScene->proj = projMat;
+	XMVECTOR det;
+	_mappedScene->invproj = XMMatrixInverse(&det, projMat);
 	_mappedScene->eye = eye;
 
 	// 法線はY上方向、原点を通る平面
@@ -1870,6 +1873,10 @@ void Dx12Wrapper::DrawAmbientOcclusion()
 	// 深度値テクスチャSRV
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// カメラ情報CBV
+	_cmdList->SetDescriptorHeaps(1, _sceneDescHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
 
 	_cmdList->SetPipelineState(_aoPipeline.Get());
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
