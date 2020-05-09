@@ -97,6 +97,8 @@ private:
 	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffers;
 	ComPtr<ID3D12PipelineState> _blurPipeline = nullptr;
 
+	ComPtr<ID3D12Resource> _dofBuffer = nullptr;
+
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
 	ComPtr<ID3D12Resource> CreateBlackTexture();
@@ -112,6 +114,7 @@ private:
 	HRESULT CreateDepthSRV();
 	HRESULT CreateConstantBufferForPera();
 	HRESULT CreateBloomBuffer();
+	HRESULT CreateBlurForDOFBuffer();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateCameraConstantBuffer();

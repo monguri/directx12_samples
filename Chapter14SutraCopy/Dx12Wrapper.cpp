@@ -322,6 +322,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateBlurForDOFBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreatePeraResouceAndView();
 	if (FAILED(result))
 	{
@@ -661,6 +668,35 @@ HRESULT Dx12Wrapper::CreateBloomBuffer()
 	}
 
 	return S_OK;
+}
+
+HRESULT Dx12Wrapper::CreateBlurForDOFBuffer()
+{
+	// FinalRenderTargetと同じ設定のバッファを2枚作る
+
+	ComPtr<ID3D12Resource> bbuff = _backBuffers[0];
+	const D3D12_RESOURCE_DESC& resDesc = bbuff->GetDesc();
+
+	const D3D12_HEAP_PROPERTIES& heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	float clsClr[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
+
+	HRESULT result = _dev->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&clearValue,
+		IID_PPV_ARGS(_dofBuffer.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return result;
 }
 
 HRESULT Dx12Wrapper::CreatePeraResouceAndView()
