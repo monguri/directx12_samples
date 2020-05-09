@@ -116,6 +116,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	float dx = 1.0f / w;
 	float dy = 1.0f / h;
 
+#if 0 // ブルーム
 	float4 bloomAccum = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float2 uvSize = float2(1.0f, 0.5f); // TODO:なぜかビューポートの設定にも関わらず、一枚目の幅が半分になってないのでそれに合わせる
 	float2 uvOfst = float2(0.0f, 0.0f);
@@ -128,7 +129,10 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	}
 
 	return tex.Sample(smp, input.uv) + Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy) + saturate(bloomAccum);
+#else
+	return tex.Sample(smp, input.uv);
 #endif
+#endif // ディファードorフォワード
 }
 
 float4 PeraGrayscalePS(PeraType input) : SV_TARGET
