@@ -871,14 +871,14 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	// ペラ1、2SRVのt0、法線SRVのt1、高輝度SRVのt2、縮小高輝度SRVのt3、被写界深度用SRVのt4
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
-	range[1].NumDescriptors = 4;
+	range[1].NumDescriptors = 5;
 	// ディストーションテクスチャSVRのt5
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[2].BaseShaderRegister = 4;
+	range[2].BaseShaderRegister = 5;
 	range[2].NumDescriptors = 1;
 	// 深度値テクスチャSRVとシャドウマップSRVのt6とt7
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[3].BaseShaderRegister = 5;
+	range[3].BaseShaderRegister = 6;
 	range[3].NumDescriptors = 2;
 
 	D3D12_ROOT_PARAMETER rp[4] = {};
@@ -1682,7 +1682,7 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	D3D12_VIEWPORT vp = {};
 	vp.MaxDepth = 1.0f;
 	vp.MinDepth = 0.0f;
-	vp.Width = desc.Width / 2.0f; // TODO:なぜか、こうしてるのに、一枚目の幅は半分にならない。高さは半分になるのに。これを2.0fで割らないと、描画される幅が倍になってしまう
+	vp.Width = desc.Width / 2.0f; // TODO:なぜか、こうしてるのに、縮小高輝度レンダーターゲットは一枚目の幅は半分にならない。高さは半分になるのに。これを2.0fで割らないと、描画される幅が倍になってしまう。縮小通常レンダーターゲットの方は幅が半分になる。
 	vp.Height = desc.Height / 2.0f;
 	D3D12_RECT sr = {};
 	sr.top = 0;
@@ -1748,17 +1748,17 @@ void Dx12Wrapper::Draw()
 
 	_cmdList->SetDescriptorHeaps(1, _peraSRVHeap.GetAddressOf());
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraSRVHeap->GetGPUDescriptorHandleForHeapStart();
-	// ペラ1、法線、高輝度、縮小高輝度のSRVをt0t1t2t3に設定
+	// ペラ1、法線、高輝度、縮小高輝度、縮小カラーのSRVをt0t1t2t3t4に設定
 #if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #endif
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
-	// ディストーションテクスチャのSRVをt4に設定
+	// ディストーションテクスチャのSRVをt5に設定
 	_cmdList->SetDescriptorHeaps(1, _distortionSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(2, _distortionSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
-	// 深度値テクスチャのSRVとシャドウマップのSRVをt5t6に設定
+	// 深度値テクスチャのSRVとシャドウマップのSRVをt6t7に設定
 	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(3, _depthSRVHeap->GetGPUDescriptorHandleForHeapStart());
 

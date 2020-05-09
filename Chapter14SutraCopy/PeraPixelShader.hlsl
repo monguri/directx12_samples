@@ -4,10 +4,11 @@ Texture2D<float4> tex : register(t0);
 Texture2D<float4> texNormal : register(t1);
 Texture2D<float4> texHighLum : register(t2);
 Texture2D<float4> texShrinkHighLum : register(t3);
-Texture2D<float4> distex : register(t4);
-Texture2D<float> depthtex : register(t5);
+Texture2D<float4> texShrink : register(t4); // 被写界深度用
+Texture2D<float4> distex : register(t5);
+Texture2D<float> depthtex : register(t6);
 // シャドウマップ
-Texture2D<float> lightDepthTex : register(t6);
+Texture2D<float> lightDepthTex : register(t7);
 SamplerState smp : register(s0);
 
 cbuffer Weight : register(b0)
@@ -88,7 +89,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 #if 0 // ディファード実験
 		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
-		return texHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 高輝度表示
+		return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 縮小高輝度表示
 #endif
 	}
 	else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
@@ -96,7 +97,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 #if 0 // ディファード実験
 		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
-		return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 高輝度表示
+		return texShrink.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 縮小カラー表示
 #endif
 	}
 
