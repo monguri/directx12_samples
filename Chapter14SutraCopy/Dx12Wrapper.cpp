@@ -1617,8 +1617,8 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	D3D12_VIEWPORT vp = {};
 	vp.MaxDepth = 1.0f;
 	vp.MinDepth = 0.0f;
+	vp.Width = desc.Width / 2.0f; // TODO:なぜか、こうしてるのに、一枚目の幅は半分にならない。高さは半分になるのに。これを2.0fで割らないと、描画される幅が倍になってしまう
 	vp.Height = desc.Height / 2.0f;
-	vp.Width = desc.Width / 2.0f;
 	D3D12_RECT sr = {};
 	sr.top = 0;
 	sr.left = 0;
