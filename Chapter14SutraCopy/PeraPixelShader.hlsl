@@ -119,6 +119,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	float4 bloomAccum = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float2 uvSize = float2(1.0f, 0.5f); // TODO:なぜかビューポートの設定にも関わらず、一枚目の幅が半分になってないのでそれに合わせる
 	float2 uvOfst = float2(0.0f, 0.0f);
+	[unroll]
 	for (int i = 0; i < 8; ++i)
 	{
 		bloomAccum += Get5x5GaussianBlur(texShrinkHighLum, smp, input.uv * uvSize + uvOfst, dx, dy);
