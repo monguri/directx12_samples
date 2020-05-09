@@ -5,8 +5,8 @@ Texture2D<float4> texNormal : register(t1);
 Texture2D<float4> texHighLum : register(t2);
 Texture2D<float4> texShrinkHighLum : register(t3);
 Texture2D<float4> texShrink : register(t4); // 被写界深度用
-Texture2D<float4> distex : register(t5);
-Texture2D<float> depthtex : register(t6);
+Texture2D<float4> distTex : register(t5);
+Texture2D<float> depthTex : register(t6);
 // シャドウマップ
 Texture2D<float> lightDepthTex : register(t7);
 SamplerState smp : register(s0);
@@ -69,7 +69,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 {
 	if (input.uv.x < 0.2f && input.uv.y < 0.2f) // 深度表示
 	{
-		float depth = depthtex.Sample(smp, input.uv * 5.0f);
+		float depth = depthTex.Sample(smp, input.uv * 5.0f);
 		depth = 1.0f - pow(depth, 30); // 奥を0、手前を1に
 		return float4(depth, depth, depth, 1.0f);
 	}
@@ -131,8 +131,53 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	}
 
 	return tex.Sample(smp, input.uv) + Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy) + saturate(bloomAccum);
-#else
-	return tex.Sample(smp, input.uv);
+#else // 被写界深度
+	// 画面中央からの深度の差を測る
+	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f)) - depthTex.Sample(smp, input.uv));
+	depthDiff = pow(depthDiff, 0.5f);
+	// 8枚の縮小バッファを選択できるように8倍
+	float t = depthDiff * 8;
+
+	// 深度差に応じて2枚の縮小バッファを選び、lerpする
+	float no;
+	t = modf(t, no);
+
+	float2 uvSize = float2(0.5f, 0.5f);
+	float2 uvOfst = float2(0.0f, 0.0f);
+
+	float4 retColor[2];
+	retColor[0] = tex.Sample(smp, input.uv);
+	if (no == 0.0f)
+	{
+		retColor[1] = Get5x5GaussianBlur(texShrink, smp, input.uv * uvSize + uvOfst, dx, dy);
+
+	}
+	else
+	{
+		[unroll]
+		for (int i = 1; i < 8; ++i)
+		{
+			if (i - no < 0)
+			{
+				// TODO:本にはこの2行はないが、これがないとnoが大きくても結局
+				// [0]と[1]は0番目と1番目を採用してしまう
+				uvOfst.y += uvSize.y;
+				uvSize *= 0.5f;
+				continue;
+			}
+
+			retColor[i - no] = Get5x5GaussianBlur(texShrink, smp, input.uv * uvSize + uvOfst, dx, dy);
+			uvOfst.y += uvSize.y;
+			uvSize *= 0.5f;
+
+			if (i - no > 1)
+			{
+				break;
+			}
+		}
+	}
+
+	return lerp(retColor[0], retColor[1], t);
 #endif
 #endif // ディファードorフォワード
 }
@@ -327,7 +372,7 @@ float4 PeraVerticalBokehAndDistortionPS(PeraType input) : SV_TARGET
 	float dy = 1.0f / h;
 
 	// ノーマルマップを利用したUVディストーション
-	float2 nmTex = distex.Sample(smp, input.uv).xy;
+	float2 nmTex = distTex.Sample(smp, input.uv).xy;
 	nmTex = nmTex * 2.0f - 1.0f;
 	
 	float4 col = tex.Sample(smp, input.uv);
@@ -344,7 +389,7 @@ float4 PeraVerticalBokehAndDistortionPS(PeraType input) : SV_TARGET
 
 float4 PeraDepthDebugPS(PeraType input) : SV_TARGET
 {
-	float depth = depthtex.Sample(smp, input.uv);
+	float depth = depthTex.Sample(smp, input.uv);
 	depth = pow(depth, 20);
 	return float4(depth, depth, depth, 1.0f);
 }
@@ -365,7 +410,7 @@ BlurOutput PeraBlurPS(PeraType input) : SV_TARGET
 	float dy = 1.0f / w;
 
 	BlurOutput ret;
-	ret.col = Get5x5GaussianBlur(tex, smp, input.uv, dx, dy);
+	ret.col = tex.Sample(smp, input.uv);
 	ret.highLum = Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy);
 	return ret;
 }
