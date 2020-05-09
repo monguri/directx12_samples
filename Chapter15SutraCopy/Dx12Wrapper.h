@@ -101,6 +101,8 @@ private:
 
 	ComPtr<ID3D12Resource> _aoBuffer = nullptr;
 	ComPtr<ID3D12PipelineState> _aoPipeline = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _aoRTVDH = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _aoSRVDH = nullptr;
 
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
@@ -119,6 +121,7 @@ private:
 	HRESULT CreateBloomBuffer();
 	HRESULT CreateBlurForDOFBuffer();
 	HRESULT CreateAmbientOcclusionBuffer();
+	HRESULT CreateAmbientOcclusionDescriptorHeap();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateCameraConstantBuffer();
