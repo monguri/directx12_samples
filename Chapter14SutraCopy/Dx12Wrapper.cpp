@@ -591,6 +591,28 @@ HRESULT Dx12Wrapper::CreateBokehParamResouce()
 		return result;
 	}
 
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.NodeMask = 0;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraCBVHeap.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _bokehParamResource->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_bokehParamResource->GetDesc().Width;
+	_dev->CreateConstantBufferView(
+		&cbvDesc,
+		_peraCBVHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+
 	float* mappedWeight = nullptr;
 	result = _bokehParamResource->Map(0, nullptr, (void**)&mappedWeight);
 	if (FAILED(result))
@@ -601,8 +623,6 @@ HRESULT Dx12Wrapper::CreateBokehParamResouce()
 
 	std::copy(weights.begin(), weights.end(), mappedWeight);
 	_bokehParamResource->Unmap(0, nullptr);
-
-	// CBVはペラのSRVとまとめるのでここでは作らない
 
 	return result;
 }
@@ -723,8 +743,8 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	// ブルーム用縮小高輝度RTV。
 	_dev->CreateRenderTargetView(_bloomBuffers[1].Get(), &rtvDesc, handle);
 
-	// ガウシアンブラーのウェイトCBVとレンダーテクスチャSRV2枚と高輝度SRV2枚用ヒープ
-	heapDesc.NumDescriptors = 5;
+	// レンダーテクスチャSRV2枚と高輝度SRV2枚用ヒープ
+	heapDesc.NumDescriptors = 4;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	result = _dev->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_peraRegisterHeap.ReleaseAndGetAddressOf()));
@@ -735,16 +755,6 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 	}
 
 	handle = _peraRegisterHeap->GetCPUDescriptorHandleForHeapStart();
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _bokehParamResource->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_bokehParamResource->GetDesc().Width;
-	_dev->CreateConstantBufferView(
-		&cbvDesc,
-		handle
-	);
-
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -1563,14 +1573,13 @@ void Dx12Wrapper::DrawHorizontalBokeh()
 	_cmdList->RSSetScissorRects(1, &scissorrect);
 
 	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
-	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
+	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
+	// ガウシアンウェイトのCBVをb0に設定
+	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
 
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
-	// ガウシアンウェイトのCBVをb0に設定
-	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
-
 	// ペラ1のSRVをt0に設定
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	_cmdList->SetPipelineState(_peraPipeline.Get());
@@ -1603,12 +1612,14 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	rtvHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * 3;
 	_cmdList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
 
-	// 定数バッファの設定
-	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
+	// ガウシアンウェイトのb0
+	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
 
+	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
-	// ガウシアンウェイトをb0、ペラ1、法線、高輝度のSRVをt0t1t2に設定するのが通常だが、ここでは高輝度だけt0に設定する
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3;
+	// ペラ1、法線、高輝度のSRVをt0t1t2に設定するのが通常だが、ここでは高輝度だけt0に設定する
+	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2;
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	// 縮小高輝度バッファに1/2ずつ縮小していった8枚のガウシアンブラーを書き込んでいく
@@ -1671,14 +1682,13 @@ void Dx12Wrapper::Draw()
 	_cmdList->RSSetScissorRects(1, &scissorrect);
 
 	_cmdList->SetGraphicsRootSignature(_peraRS.Get());
+	// ガウシアンウェイトのb0
+	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(0, _peraCBVHeap->GetGPUDescriptorHandleForHeapStart());
+
 	_cmdList->SetDescriptorHeaps(1, _peraRegisterHeap.GetAddressOf());
-
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = _peraRegisterHeap->GetGPUDescriptorHandleForHeapStart();
-	// ガウシアンウェイトのCBVをb0に設定
-	_cmdList->SetGraphicsRootDescriptorTable(0, handle); // 0はルートパラメータのインデックス
-
 	// ペラ1、法線、高輝度、縮小高輝度のSRVをt0t1t2t3に設定
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #if 0 // ペラ2のSRVをt0に使う場合
 	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 #endif

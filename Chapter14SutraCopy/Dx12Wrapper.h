@@ -92,6 +92,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _depthSRVHeap = nullptr;
 
 	ComPtr<ID3D12Resource> _bokehParamResource = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _peraCBVHeap = nullptr;
 
 	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffers;
 	ComPtr<ID3D12PipelineState> _blurPipeline = nullptr;

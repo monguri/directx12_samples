@@ -1,10 +1,5 @@
 #include "Type.hlsli"
 
-cbuffer Weight : register(b0)
-{
-	float4 bkweights[2];
-	//float bkweights[8];
-};
 Texture2D<float4> tex : register(t0);
 Texture2D<float4> texNormal : register(t1);
 Texture2D<float4> texHighLum : register(t2);
@@ -14,6 +9,12 @@ Texture2D<float> depthtex : register(t5);
 // シャドウマップ
 Texture2D<float> lightDepthTex : register(t6);
 SamplerState smp : register(s0);
+
+cbuffer Weight : register(b0)
+{
+	float4 bkweights[2];
+	//float bkweights[8];
+};
 
 float4 Get5x5GaussianBlur(Texture2D<float4> tex, SamplerState smp, float2 uv, float dx, float dy)
 {
