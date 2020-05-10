@@ -189,7 +189,8 @@ float4 PeraPS(PeraType input) : SV_TARGET
 
 	return lerp(retColor[0], retColor[1], t);
 #else
-	return tex.Sample(smp, input.uv);
+	float4 col = tex.Sample(smp, input.uv);
+	return float4(col.rgb * texSSAO.Sample(smp, input.uv), col.a);
 #endif
 #endif // ディファードorフォワード
 }
