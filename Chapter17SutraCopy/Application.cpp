@@ -8,6 +8,13 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
 
+EffekseerRenderer::Renderer* _efkRenderer = nullptr;
+Effekseer::Manager* _efkManager = nullptr;
+EffekseerRenderer::SingleFrameMemoryPool* _efkMemoryPool = nullptr;
+EffekseerRenderer::CommandList* _efkCmdList = nullptr;
+Effekseer::Effect* _effect = nullptr;
+Effekseer::Handle* _efkHandle = nullptr;
+
 void DebugOutputFormatString(const char* format, ...)
 {
 #ifdef _DEBUG
@@ -84,6 +91,30 @@ bool Application::Init()
 		_dx12->GetHeapForImgui()->GetGPUDescriptorHandleForHeapStart()
 	);
 	if (!bInResult)
+	{
+		assert(false);
+		return false;
+	}
+
+	DXGI_FORMAT bbFormat[] = {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM};
+	_efkRenderer = EffekseerRendererDX12::Create(
+		_dx12->Device().Get(),
+		_dx12->CmdQue().Get(),
+		2,
+		bbFormat,
+		1,
+		false,
+		false,
+		10000
+	);
+	if (_efkRenderer == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	_efkManager = Effekseer::Manager::Create(10000);
+	if (_efkManager == nullptr)
 	{
 		assert(false);
 		return false;

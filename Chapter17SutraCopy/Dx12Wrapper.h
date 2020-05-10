@@ -19,6 +19,7 @@ public:
 
 	ComPtr<ID3D12Device> Device() const;
 	ComPtr<ID3D12GraphicsCommandList> CommandList() const;
+	ComPtr<ID3D12CommandQueue> CmdQue() const;
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
 	bool CheckResult(HRESULT result , ID3DBlob* error=nullptr);

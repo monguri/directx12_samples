@@ -102,6 +102,11 @@ ComPtr<ID3D12GraphicsCommandList> Dx12Wrapper::CommandList() const
 	return _cmdList;
 }
 
+ComPtr<ID3D12CommandQueue> Dx12Wrapper::CmdQue() const
+{
+	return _cmdQueue;
+}
+
 std::string Dx12Wrapper::GetExtension(const std::string& path)
 {
 	size_t idx = path.rfind('.');
