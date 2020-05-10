@@ -1847,7 +1847,6 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 
 void Dx12Wrapper::DrawAmbientOcclusion()
 {
-
 	_cmdList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(_aoBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
