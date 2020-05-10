@@ -71,6 +71,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter15SutraCopy", "Chapt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter16SutraCopy", "Chapter16SutraCopy\Chapter16SutraCopy.vcxproj", "{16270468-4AA8-4682-9D2A-CEB32B139100}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter17SutraCopy", "Chapter17SutraCopy\Chapter17SutraCopy.vcxproj", "{350C5571-101B-48AD-9D63-7153EDFB2A2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -351,6 +353,14 @@ Global
 		{16270468-4AA8-4682-9D2A-CEB32B139100}.Release|x64.Build.0 = Release|x64
 		{16270468-4AA8-4682-9D2A-CEB32B139100}.Release|x86.ActiveCfg = Release|Win32
 		{16270468-4AA8-4682-9D2A-CEB32B139100}.Release|x86.Build.0 = Release|Win32
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Debug|x64.ActiveCfg = Debug|x64
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Debug|x64.Build.0 = Debug|x64
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Debug|x86.ActiveCfg = Debug|Win32
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Debug|x86.Build.0 = Debug|Win32
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Release|x64.ActiveCfg = Release|x64
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Release|x64.Build.0 = Release|x64
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Release|x86.ActiveCfg = Release|Win32
+		{350C5571-101B-48AD-9D63-7153EDFB2A2C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
