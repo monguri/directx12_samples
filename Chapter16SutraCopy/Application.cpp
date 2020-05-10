@@ -126,6 +126,9 @@ void Application::Run()
 {
 	ShowWindow(_hwnd, SW_SHOW);
 
+	constexpr float pi = 3.141592653589f;
+	float fov = pi / 4.0f;
+
 	MSG msg = {};
 	while (true)
 	{
@@ -165,28 +168,43 @@ void Application::Run()
 		ImGui::Begin("Rendering Test Menu");
 		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f), ImGuiCond_::ImGuiCond_FirstUseEver);
 
-		static bool bInDebugDisp = false;
-		ImGui::Checkbox("Debug Display", &bInDebugDisp);
+		static bool blnDebugDisp = false;
+		ImGui::Checkbox("Debug Display", &blnDebugDisp);
+		// TODO:ŽÀ‘•
+		//_dx12->SetDebugDisplay(blnDebugDisp);
 
-		static int radio = 0;
-		ImGui::RadioButton("Radio 1", &radio, 0);
-		ImGui::SameLine();
-		ImGui::RadioButton("Radio 2", &radio, 1);
-		ImGui::SameLine();
-		ImGui::RadioButton("Radio 3", &radio, 2);
+		static bool blnSSAO = false;
+		ImGui::Checkbox("SSAO on/off", &blnSSAO);
+		// TODO:ŽÀ‘•
+		//_dx12->SetSSAO(blnSSAO);
 
-		static int nSlider = 0;
-		ImGui::SliderInt("Int Slider", &nSlider, 0, 100);
+		static bool blnShadowmap = false;
+		ImGui::Checkbox("Self Shadow on/off", &blnShadowmap);
+		// TODO:ŽÀ‘•
+		//_dx12->SetSelfShadow(blnShadowmap);
 
-		static float fSlider = 0;
-		ImGui::SliderFloat("Float Slider", &fSlider, 0.0f, 100.0f);
+		if (ImGui::SliderFloat("Field of view", &fov, pi / 6.0f, pi * 5.0f / 6.0f))
+		{
+			// TODO:ŽÀ‘•
+			//_dx12->SetFov(fov);
+		}
 
-		static float col3[3] = {};
-		ImGui::ColorPicker3("ColorPicker3", col3, ImGuiColorEditFlags_::ImGuiColorEditFlags_InputRGB);
+		static float lightVec[3] = {1.0f, -1.0f, 1.0f};
+		if (ImGui::SliderFloat3("Light vector", lightVec, -1.0f, 1.0f))
+		{
+			// TODO:ŽÀ‘•
+			//_dx12->SetLightVector(lightVec);
+		}
 		
-		static float col4[4] = {};
-		ImGui::ColorPicker4("ColorPicker4", col4, ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
+		static float bgCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+		ImGui::ColorPicker4("BG color", bgCol, ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
+		// TODO:ŽÀ‘•
+		//_dx12->SetBackColor(bgCol);
 
+		static float bloomCol[3] = {};
+		ImGui::ColorPicker3("Bloom color", bloomCol);
+		// TODO:ŽÀ‘•
+		//_dx12->SetBloomColor(bloomCol);
 
 		ImGui::End();
 		ImGui::Render();
