@@ -835,8 +835,7 @@ HRESULT Dx12Wrapper::CreatePeraResouceAndView()
 
 	const D3D12_HEAP_PROPERTIES& heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-	float clsClr[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clsClr);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, _bgColor);
 
 	for (ComPtr<ID3D12Resource>& res : _pera1Resources)
 	{
@@ -1650,8 +1649,9 @@ void Dx12Wrapper::SetLightVector(bool flg)
 {
 }
 
-void Dx12Wrapper::SetBackColor(bool flg)
+void Dx12Wrapper::SetBackColor(float col[4])
 {
+	std::copy_n(col, 4, std::begin(_bgColor));
 }
 
 void Dx12Wrapper::SetBloomColor(bool flg)
@@ -1762,7 +1762,7 @@ void Dx12Wrapper::PreDrawToPera1()
 			// ブルーム用高輝度ではRGBは0でクリアする
 			clearColor[0] = clearColor[1] = clearColor[2] = 0.0f;
 		}
-		_cmdList->ClearRenderTargetView(rtvs[i], clearColor, 0, nullptr);
+		_cmdList->ClearRenderTargetView(rtvs[i], _bgColor, 0, nullptr);
 	}
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 

@@ -31,7 +31,7 @@ public:
 	void SetSelfShadow(bool flg);
 	void SetFov(float fov);
 	void SetLightVector(bool flg);
-	void SetBackColor(bool flg);
+	void SetBackColor(float col[4]);
 	void SetBloomColor(bool flg);
 
 	void SetCameraSetting();
@@ -72,6 +72,7 @@ private:
 
 	struct SceneMatrix* _mappedScene = nullptr;
 	float _fov = DirectX::XM_PIDIV4;
+	float _bgColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 
 	ComPtr<ID3D12Fence> _fence = nullptr;
 	UINT _fenceVal = 0;

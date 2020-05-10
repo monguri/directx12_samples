@@ -198,8 +198,7 @@ void Application::Run()
 		
 		static float bgCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 		ImGui::ColorPicker4("BG color", bgCol, ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
-		// TODO:ŽÀ‘•
-		//_dx12->SetBackColor(bgCol);
+		_dx12->SetBackColor(bgCol);
 
 		static float bloomCol[3] = {};
 		ImGui::ColorPicker3("Bloom color", bloomCol);
