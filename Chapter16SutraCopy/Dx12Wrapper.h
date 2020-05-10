@@ -68,7 +68,7 @@ private:
 	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
 	ComPtr<ID3D12Resource> _lightDepthBuffer = nullptr;
-	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
+	ComPtr<ID3D12Resource> _sceneCB = nullptr;
 
 	struct SceneMatrix* _mappedScene = nullptr;
 	float _fov = DirectX::XM_PIDIV4;
@@ -137,6 +137,7 @@ private:
 	HRESULT CreateDescriptorHeapForImgui();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
-	HRESULT CreateCameraConstantBuffer();
+	HRESULT CreateTransformConstantBuffer();
+	HRESULT CreateTransformBufferView();
 };
 

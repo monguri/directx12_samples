@@ -302,7 +302,14 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
-	result = CreateCameraConstantBuffer();
+	result = CreateTransformConstantBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	result = CreateTransformBufferView();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -1382,7 +1389,7 @@ HRESULT Dx12Wrapper::CreateDepthSRV()
 	return result;
 }
 
-HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
+HRESULT Dx12Wrapper::CreateTransformConstantBuffer()
 {
 	HRESULT result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -1390,7 +1397,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneMatrix) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(_sceneConstBuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_sceneCB.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
@@ -1398,13 +1405,18 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		return result;
 	}
 
-	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mappedScene);
+	result = _sceneCB->Map(0, nullptr, (void**)&_mappedScene);
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
 
+	return result;
+}
+
+HRESULT Dx12Wrapper::CreateTransformBufferView()
+{
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
 	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -1412,7 +1424,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	basicHeapDesc.NumDescriptors = 1;
 	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_sceneDescHeap.ReleaseAndGetAddressOf()));
+	HRESULT result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_sceneDescHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
@@ -1422,8 +1434,8 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_sceneDescHeap->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _sceneConstBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_sceneConstBuff->GetDesc().Width;
+	cbvDesc.BufferLocation = _sceneCB->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_sceneCB->GetDesc().Width;
 
 	_dev->CreateConstantBufferView(
 		&cbvDesc,
