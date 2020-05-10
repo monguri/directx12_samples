@@ -23,7 +23,9 @@ cbuffer Weight : register(b0)
 cbuffer PostSetting : register(b1)
 {
 	bool isDebugDisp;
+	float3 padding;
 	bool isSSAO;
+	float3 padding2;
 	float3 bloomColor;
 };
 

@@ -125,7 +125,9 @@ private:
 	struct PostSetting
 	{
 		bool isDebugDisp = false;
+		DirectX::XMFLOAT3 padding;
 		bool isSSAO = false;
+		DirectX::XMFLOAT3 padding2;
 		DirectX::XMFLOAT4 bloomColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 	};
 
