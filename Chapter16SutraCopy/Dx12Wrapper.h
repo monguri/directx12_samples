@@ -22,9 +22,10 @@ public:
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
 	bool CheckResult(HRESULT result , ID3DBlob* error=nullptr);
-	ComPtr<ID3D12Resource> GetGrayGradientTexture();
-	ComPtr<ID3D12Resource> GetWhiteTexture();
-	ComPtr<ID3D12Resource> GetBlackTexture();
+	ComPtr<ID3D12DescriptorHeap> GetHeapForImgui() const;
+	ComPtr<ID3D12Resource> GetGrayGradientTexture() const;
+	ComPtr<ID3D12Resource> GetWhiteTexture() const;
+	ComPtr<ID3D12Resource> GetBlackTexture() const;
 
 	void PreDrawShadow();
 	void PreDrawToPera1();
@@ -105,6 +106,8 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _aoRTVDH = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _aoSRVDH = nullptr;
 
+	ComPtr<ID3D12DescriptorHeap> _heapForImgui = nullptr;
+
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
 	ComPtr<ID3D12Resource> CreateBlackTexture();
@@ -123,6 +126,7 @@ private:
 	HRESULT CreateBlurForDOFBuffer();
 	HRESULT CreateAmbientOcclusionBuffer();
 	HRESULT CreateAmbientOcclusionDescriptorHeap();
+	HRESULT CreateDescriptorHeapForImgui();
 	HRESULT CreatePeraResouceAndView();
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateCameraConstantBuffer();

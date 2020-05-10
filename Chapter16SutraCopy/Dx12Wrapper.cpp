@@ -358,6 +358,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreateDescriptorHeapForImgui();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	// ƒtƒFƒ“ƒX‚Ì¶¬
 	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
@@ -788,6 +795,28 @@ HRESULT Dx12Wrapper::CreateAmbientOcclusionDescriptorHeap()
 	_dev->CreateShaderResourceView(_aoBuffer.Get(), &srvDesc, _aoSRVDH->GetCPUDescriptorHandleForHeapStart());
 
 	return result;
+}
+
+HRESULT Dx12Wrapper::CreateDescriptorHeapForImgui()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	HRESULT result = _dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(_heapForImgui.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	return result;
+}
+
+ComPtr<ID3D12DescriptorHeap> Dx12Wrapper::GetHeapForImgui() const
+{
+	return _heapForImgui;
 }
 
 HRESULT Dx12Wrapper::CreatePeraResouceAndView()
@@ -1609,17 +1638,17 @@ ComPtr<ID3D12Resource> Dx12Wrapper::CreateBlackTexture()
 	return texbuff;
 }
 
-ComPtr<ID3D12Resource> Dx12Wrapper::GetGrayGradientTexture()
+ComPtr<ID3D12Resource> Dx12Wrapper::GetGrayGradientTexture() const
 {
 	return _gradTex;
 }
 
-ComPtr<ID3D12Resource> Dx12Wrapper::GetWhiteTexture()
+ComPtr<ID3D12Resource> Dx12Wrapper::GetWhiteTexture() const
 {
 	return _whiteTex;
 }
 
-ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture()
+ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture() const
 {
 	return _blackTex;
 }
