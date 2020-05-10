@@ -152,6 +152,19 @@ void Application::Run()
 		_dx12->DrawShrinkTextureForBlur();
 		_dx12->DrawAmbientOcclusion();
 		_dx12->Draw();
+
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Rendering Test Menu");
+		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f), ImGuiCond_::ImGuiCond_FirstUseEver);
+		ImGui::End();
+		ImGui::Render();
+
+		_dx12->CommandList()->SetDescriptorHeaps(1, _dx12->GetHeapForImgui().GetAddressOf());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _dx12->CommandList().Get());
+
 		_dx12->Flip();
 	}
 }
