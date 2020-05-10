@@ -91,7 +91,6 @@ private:
 
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
-	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreatePeraVertex();
 	HRESULT CreateEffectBufferAndView();
