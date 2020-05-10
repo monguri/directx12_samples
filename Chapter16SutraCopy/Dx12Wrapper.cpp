@@ -1384,20 +1384,6 @@ HRESULT Dx12Wrapper::CreateDepthSRV()
 
 HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 {
-	// 定数バッファ用データ
-	// 定数バッファ作成
-	XMFLOAT3 eye(0, 15, -25);
-	XMFLOAT3 target(0, 10, 0);
-	XMFLOAT3 up(0, 1, 0);
-	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	const SIZE& winSize = Application::Instance().GetWindowSize();
-	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,
-		(float)winSize.cx / (float)winSize.cy,
-		1.0f,
-		100.0f
-	);
-
 	HRESULT result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
@@ -1418,28 +1404,6 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		assert(false);
 		return result;
 	}
-	_mappedScene->view = viewMat;
-	_mappedScene->proj = projMat;
-	XMVECTOR det;
-	_mappedScene->invviewproj = XMMatrixInverse(&det, viewMat * projMat);
-	_mappedScene->eye = eye;
-
-	// 法線はY上方向、原点を通る平面
-	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
-	// ライトの方向ベクトルの逆方向
-	XMFLOAT4 light(-1.0f, 1.0f, -1.0f, 0.0f); // w要素は平行光源ということで0でいい
-	const XMVECTOR& lightVec = XMLoadFloat4(&light);
-	_mappedScene->shadow = XMMatrixShadow(
-		XMLoadFloat4(&planeVec),
-		lightVec
-	);
-
-	const XMVECTOR& eyePos = XMLoadFloat3(&eye);
-	const XMVECTOR& targetPos = XMLoadFloat3(&target);
-	const XMVECTOR& upVec = XMLoadFloat3(&up);
-	// ビュー行列のためにライトの位置を決めねばならないので、適当に、ターゲット位置からライト方向に、本カメラとターゲットの間の距離だけ伸ばした位置にしておく
-	const XMVECTOR& lightPos = targetPos + XMVector3Normalize(lightVec) * XMVector3Length(XMVectorSubtract(targetPos, eyePos)).m128_f32[0];
-	_mappedScene->lightCamera = XMMatrixLookAtLH(lightPos, targetPos, upVec) * XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 100.0f);
 
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
@@ -1651,6 +1615,75 @@ ComPtr<ID3D12Resource> Dx12Wrapper::GetWhiteTexture() const
 ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture() const
 {
 	return _blackTex;
+}
+
+void Dx12Wrapper::SetDebugDisplay(bool flg)
+{
+}
+
+void Dx12Wrapper::SetSSAO(bool flg)
+{
+}
+
+void Dx12Wrapper::SetSelfShadow(bool flg)
+{
+}
+
+void Dx12Wrapper::SetFov(float fov)
+{
+	_fov = fov;
+}
+
+void Dx12Wrapper::SetLightVector(bool flg)
+{
+}
+
+void Dx12Wrapper::SetBackColor(bool flg)
+{
+}
+
+void Dx12Wrapper::SetBloomColor(bool flg)
+{
+}
+
+void Dx12Wrapper::SetCameraSetting()
+{
+	// 定数バッファ用データ
+	// 定数バッファ作成
+	XMFLOAT3 eye(0, 15, -25);
+	XMFLOAT3 target(0, 10, 0);
+	XMFLOAT3 up(0, 1, 0);
+	const XMMATRIX& viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	const SIZE& winSize = Application::Instance().GetWindowSize();
+	const XMMATRIX& projMat = XMMatrixPerspectiveFovLH(
+		_fov,
+		(float)winSize.cx / (float)winSize.cy,
+		1.0f,
+		100.0f
+	);
+
+	_mappedScene->eye = eye;
+	_mappedScene->view = viewMat;
+	_mappedScene->proj = projMat;
+	XMVECTOR det;
+	_mappedScene->invviewproj = XMMatrixInverse(&det, viewMat * projMat);
+
+	// 法線はY上方向、原点を通る平面
+	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
+	// ライトの方向ベクトルの逆方向
+	XMFLOAT4 light(-1.0f, 1.0f, -1.0f, 0.0f); // w要素は平行光源ということで0でいい
+	const XMVECTOR& lightVec = XMLoadFloat4(&light);
+	_mappedScene->shadow = XMMatrixShadow(
+		XMLoadFloat4(&planeVec),
+		lightVec
+	);
+
+	const XMVECTOR& eyePos = XMLoadFloat3(&eye);
+	const XMVECTOR& targetPos = XMLoadFloat3(&target);
+	const XMVECTOR& upVec = XMLoadFloat3(&up);
+	// ビュー行列のためにライトの位置を決めねばならないので、適当に、ターゲット位置からライト方向に、本カメラとターゲットの間の距離だけ伸ばした位置にしておく
+	const XMVECTOR& lightPos = targetPos + XMVector3Normalize(lightVec) * XMVector3Length(XMVectorSubtract(targetPos, eyePos)).m128_f32[0];
+	_mappedScene->lightCamera = XMMatrixLookAtLH(lightPos, targetPos, upVec) * XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 100.0f);
 }
 
 // デプスバッファの場合はDSVとSRVの切り替えバリアが不要なのでPostDrawShadowは実装しない

@@ -26,7 +26,15 @@ public:
 	ComPtr<ID3D12Resource> GetGrayGradientTexture() const;
 	ComPtr<ID3D12Resource> GetWhiteTexture() const;
 	ComPtr<ID3D12Resource> GetBlackTexture() const;
+	void SetDebugDisplay(bool flg);
+	void SetSSAO(bool flg);
+	void SetSelfShadow(bool flg);
+	void SetFov(float fov);
+	void SetLightVector(bool flg);
+	void SetBackColor(bool flg);
+	void SetBloomColor(bool flg);
 
+	void SetCameraSetting();
 	void PreDrawShadow();
 	void PreDrawToPera1();
 	void PostDrawToPera1();
@@ -63,6 +71,7 @@ private:
 	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
 
 	struct SceneMatrix* _mappedScene = nullptr;
+	float _fov = DirectX::XM_PIDIV4;
 
 	ComPtr<ID3D12Fence> _fence = nullptr;
 	UINT _fenceVal = 0;
@@ -114,7 +123,6 @@ private:
 
 	HRESULT CreateDXGIDevice();
 	HRESULT CreateCommand();
-	HRESULT CreateSwapChain();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreatePeraVertex();
 	HRESULT CreateEffectBufferAndView();

@@ -143,6 +143,7 @@ void Application::Run()
 			break;
 		}
 
+		_dx12->SetCameraSetting();
 		_pmdRenderer->Update();
 
 		_pmdRenderer->BeforeDrawFromLight();
@@ -185,8 +186,7 @@ void Application::Run()
 
 		if (ImGui::SliderFloat("Field of view", &fov, pi / 6.0f, pi * 5.0f / 6.0f))
 		{
-			// TODO:ŽÀ‘•
-			//_dx12->SetFov(fov);
+			_dx12->SetFov(fov);
 		}
 
 		static float lightVec[3] = {1.0f, -1.0f, 1.0f};
