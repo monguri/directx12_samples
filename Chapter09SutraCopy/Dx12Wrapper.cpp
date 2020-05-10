@@ -246,7 +246,14 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
-	result = CreateCameraConstantBuffer();
+	result = CreateTransformConstantBuffer();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
+	result = CreateTransformBufferView();
 	if (FAILED(result))
 	{
 		assert(false);
@@ -439,29 +446,15 @@ HRESULT Dx12Wrapper::CreateDepthStencil()
 	return result;
 }
 
-HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
+HRESULT Dx12Wrapper::CreateTransformConstantBuffer()
 {
-	// 定数バッファ用データ
-	// 定数バッファ作成
-	XMFLOAT3 eye(0, 15, -15);
-	XMFLOAT3 target(0, 15, 0);
-	XMFLOAT3 up(0, 1, 0);
-	XMMATRIX viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	const SIZE& winSize = Application::Instance().GetWindowSize();
-	XMMATRIX projMat = XMMatrixPerspectiveFovLH(
-		XM_PIDIV4,
-		(float)winSize.cx / (float)winSize.cy,
-		1.0f,
-		100.0f
-	);
-
 	HRESULT result = _dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(_sceneConstBuff.ReleaseAndGetAddressOf())
+		IID_PPV_ARGS(_sceneCB.ReleaseAndGetAddressOf())
 	);
 	if (FAILED(result))
 	{
@@ -469,16 +462,18 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 		return result;
 	}
 
-	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mapScene);
+	result = _sceneCB->Map(0, nullptr, (void**)&_mapScene);
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
-	_mapScene->view = viewMat;
-	_mapScene->proj = projMat;
-	_mapScene->eye = eye;
 
+	return result;
+}
+
+HRESULT Dx12Wrapper::CreateTransformBufferView()
+{
 	// ディスクリプタヒープとCBV作成
 	D3D12_DESCRIPTOR_HEAP_DESC basicHeapDesc = {};
 	basicHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -486,18 +481,18 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	basicHeapDesc.NumDescriptors = 1;
 	basicHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_sceneDescHeap.ReleaseAndGetAddressOf()));
+	HRESULT result = _dev->CreateDescriptorHeap(&basicHeapDesc, IID_PPV_ARGS(_sceneHeap.ReleaseAndGetAddressOf()));
 	if (FAILED(result))
 	{
 		assert(false);
 		return result;
 	}
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_sceneDescHeap->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE basicHeapHandle(_sceneHeap->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _sceneConstBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = (UINT)_sceneConstBuff->GetDesc().Width;
+	cbvDesc.BufferLocation = _sceneCB->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_sceneCB->GetDesc().Width;
 
 	_dev->CreateConstantBufferView(
 		&cbvDesc,
@@ -536,9 +531,9 @@ void Dx12Wrapper::BeginDraw()
 
 void Dx12Wrapper::SetCamera()
 {
-	ID3D12DescriptorHeap* bdh[] = {_sceneDescHeap.Get()};
+	ID3D12DescriptorHeap* bdh[] = {_sceneHeap.Get()};
 	_cmdList->SetDescriptorHeaps(1, bdh);
-	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
+	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
 void Dx12Wrapper::EndDraw()

@@ -42,7 +42,7 @@ private:
 
 	// バッファは描画に用いるので保持し続ける必要がある
 	ComPtr<ID3D12Resource> _depthBuffer = nullptr;
-	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
+	ComPtr<ID3D12Resource> _sceneCB = nullptr;
 
 	struct SceneData* _mapScene = nullptr;
 
@@ -51,7 +51,7 @@ private:
 
 	std::vector<ComPtr<ID3D12Resource>> _backBuffers;
 
-	ComPtr<ID3D12DescriptorHeap> _sceneDescHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _sceneHeap = nullptr;
 
 	ComPtr<ID3D12DescriptorHeap> _rtvHeaps = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _dsvHeap = nullptr;
@@ -63,6 +63,7 @@ private:
 	HRESULT CreateCommand();
 	HRESULT CreateFinalRenderTarget(const struct DXGI_SWAP_CHAIN_DESC1& swapchainDesc);
 	HRESULT CreateDepthStencil();
-	HRESULT CreateCameraConstantBuffer();
+	HRESULT CreateTransformConstantBuffer();
+	HRESULT CreateTransformBufferView();
 };
 
