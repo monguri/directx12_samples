@@ -16,6 +16,8 @@ void DebugOutputFormatString(const char* format, ...)
 #endif
 }
 
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+
 LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	if (msg == WM_DESTROY)
@@ -24,6 +26,9 @@ LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		return 0;
 	}
 
+	// ウィンドウメッセージをまずはImguiのハンドラで受け取る
+	ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam);
+	// 次にWindowのデフォルトハンドラで受け取る
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
