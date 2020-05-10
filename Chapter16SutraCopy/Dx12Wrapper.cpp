@@ -1733,8 +1733,11 @@ void Dx12Wrapper::SetBackColor(float col[4])
 	std::copy_n(col, 4, std::begin(_bgColor));
 }
 
-void Dx12Wrapper::SetBloomColor(bool flg)
+void Dx12Wrapper::SetBloomColor(float col[3])
 {
+	_mappedPostSetting->bloomColor.x = col[0];
+	_mappedPostSetting->bloomColor.y = col[1];
+	_mappedPostSetting->bloomColor.z = col[2];
 }
 
 void Dx12Wrapper::SetCameraSetting()
@@ -1839,15 +1842,18 @@ void Dx12Wrapper::PreDrawToPera1()
 	_cmdList->OMSetRenderTargets(_countof(rtvs), rtvs, false, &dsvH);
 
 	// レンダーターゲットとデプスをクリアする
-	float clearColor[] = {0.5f, 0.5f, 0.5f, 1.0f};
 	for (int i = 0; i < _countof(rtvs); ++i)
 	{
 		if (i == 2)
 		{
 			// ブルーム用高輝度ではRGBは0でクリアする
-			clearColor[0] = clearColor[1] = clearColor[2] = 0.0f;
+			float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+			_cmdList->ClearRenderTargetView(rtvs[i], clearColor, 0, nullptr);
 		}
-		_cmdList->ClearRenderTargetView(rtvs[i], _bgColor, 0, nullptr);
+		else
+		{
+			_cmdList->ClearRenderTargetView(rtvs[i], _bgColor, 0, nullptr);
+		}
 	}
 	_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -1955,6 +1961,10 @@ void Dx12Wrapper::DrawShrinkTextureForBlur()
 	rtvHandles[0].InitOffsetted(rtvBaseHandle, rtvIncSize * 3); // 縮小高輝度バッファ
 	rtvHandles[1].InitOffsetted(rtvBaseHandle, rtvIncSize * 4); // 被写界深度用縮小バッファ
 	_cmdList->OMSetRenderTargets(2, rtvHandles, false, nullptr);
+
+	float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+	_cmdList->ClearRenderTargetView(rtvHandles[0], clearColor, 0, nullptr);
+	_cmdList->ClearRenderTargetView(rtvHandles[1], clearColor, 0, nullptr);
 
 	// ガウシアンウェイトのb0
 	_cmdList->SetDescriptorHeaps(1, _peraCBVHeap.GetAddressOf());

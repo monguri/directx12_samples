@@ -196,7 +196,7 @@ void Application::Run()
 		ImGui::ColorPicker4("BG color", bgCol, ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
 		_dx12->SetBackColor(bgCol);
 
-		static float bloomCol[3] = {};
+		static float bloomCol[3] = {1.0f, 1.0f, 1.0f};
 		ImGui::ColorPicker3("Bloom color", bloomCol);
 		_dx12->SetBloomColor(bloomCol);
 

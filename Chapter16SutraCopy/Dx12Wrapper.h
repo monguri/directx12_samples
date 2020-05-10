@@ -32,7 +32,7 @@ public:
 	void SetFov(float fov);
 	void SetLightVector(float vec[3]);
 	void SetBackColor(float col[4]);
-	void SetBloomColor(bool flg);
+	void SetBloomColor(float col[3]);
 
 	void SetCameraSetting();
 	void PreDrawShadow();
@@ -128,7 +128,7 @@ private:
 		float padding;
 		bool isSSAO = false;
 		float padding2;
-		DirectX::XMFLOAT4 bloomColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT3 bloomColor = { 1.0f, 1.0f, 1.0f };
 	};
 
 	ComPtr<ID3D12Resource> _postSettingResource = nullptr;

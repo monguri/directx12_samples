@@ -103,12 +103,8 @@ float4 PeraPS(PeraType input) : SV_TARGET
 #if 0 // ディファード実験
 			return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
-#if 0 // ブルーム
-			return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 縮小高輝度表示
-#else // SSAO
-			float s = texSSAO.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
+			float s = texSSAO.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // SSAO表示
 			return float4(s, s, s, 1.0f);
-#endif
 #endif
 		}
 		else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
@@ -116,9 +112,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 #if 0 // ディファード実験
 			return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
-#if 0 // ブルーム
-			return texShrink.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 縮小カラー表示
-#endif
+			return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 縮小高輝度表示
 #endif
 		}
 	}
@@ -140,7 +134,6 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	float dx = 1.0f / w;
 	float dy = 1.0f / h;
 
-#if 0 // ブルーム
 	float4 bloomAccum = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0.0f, 0.0f);
@@ -152,8 +145,17 @@ float4 PeraPS(PeraType input) : SV_TARGET
 		uvSize *= 0.5f;
 	}
 
-	return tex.Sample(smp, input.uv) + Get5x5GaussianBlur(texHighLum, smp, input.uv, dx, dy) + saturate(bloomAccum);
-#elif 0 // 被写界深度
+	float4 col = tex.Sample(smp, input.uv);
+	if (isSSAO)
+	{
+		col.rgb *= texSSAO.Sample(smp, input.uv);
+	}
+
+	col.rgb += bloomAccum.xyz * bloomColor;
+	return col;
+#endif
+
+#if 0 // 被写界深度
 	// 画面中央からの深度の差を測る
 	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f)) - depthTex.Sample(smp, input.uv));
 	depthDiff = pow(depthDiff, 0.5f);
@@ -200,18 +202,7 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	}
 
 	return lerp(retColor[0], retColor[1], t);
-#else
-	float4 col = tex.Sample(smp, input.uv);
-	if (isSSAO)
-	{
-		return float4(col.rgb * texSSAO.Sample(smp, input.uv), col.a);
-	}
-	else
-	{
-		return col;
-	}
 #endif
-#endif // ディファードorフォワード
 }
 
 float4 PeraGrayscalePS(PeraType input) : SV_TARGET
