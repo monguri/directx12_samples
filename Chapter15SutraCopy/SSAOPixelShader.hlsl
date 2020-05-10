@@ -41,14 +41,17 @@ float SsaoPS(PeraType input) : SV_Target
 	float ao = 0.0f;
 
 	// 法線ベクトル
-	float3 norm = (normtex.Sample(smp, input.uv).xyz * 2.0f) - 1.0f;
+	// 本ではnormalizeしてるが、BasicPixelShaderでもPMDから取得した法線をそのまま
+	// normalizeせずランバート反射計算に使ってるのでそのままでいいと思う
+	float3 norm = normtex.Sample(smp, input.uv).xyz * 2.0f - 1.0f;
 
-	const int trccnt = 32;
+	const int trycnt = 32;
 	const float radius = 0.5f;
 
 	if (dp < 1.0f) // Far面をつきぬけたピクセルについては計算しない
 	{
-		for (int i = 0; i < trccnt; ++i)
+		[unroll]
+		for (int i = 0; i < trycnt; ++i)
 		{
 			float rnd1 = random(float2(i * dx, i * dy)) * 2.0f - 1.0f;
 			float rnd2 = random(float2(rnd1, i * dy)) * 2.0f - 1.0f;
@@ -72,7 +75,7 @@ float SsaoPS(PeraType input) : SV_Target
 
 			// ランダムレイの半球面上の点のデプスが、実際のそのピクセルのデプスより大きければ遮蔽されているのでcosThetaを加算
 			ao += step(
-				depthtex.Sample(smp, (rpos.xy + float2(1.0f, -1.0f) * float2(0.5f, -0.5f))),
+				depthtex.Sample(smp, (rpos.xy + float2(1.0f, -1.0f)) * float2(0.5f, -0.5f)),
 				rpos.z
 			) * dt;
 		}
