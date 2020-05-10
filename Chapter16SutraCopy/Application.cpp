@@ -164,6 +164,30 @@ void Application::Run()
 
 		ImGui::Begin("Rendering Test Menu");
 		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f), ImGuiCond_::ImGuiCond_FirstUseEver);
+
+		static bool bInDebugDisp = false;
+		ImGui::Checkbox("Debug Display", &bInDebugDisp);
+
+		static int radio = 0;
+		ImGui::RadioButton("Radio 1", &radio, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton("Radio 2", &radio, 1);
+		ImGui::SameLine();
+		ImGui::RadioButton("Radio 3", &radio, 2);
+
+		static int nSlider = 0;
+		ImGui::SliderInt("Int Slider", &nSlider, 0, 100);
+
+		static float fSlider = 0;
+		ImGui::SliderFloat("Float Slider", &fSlider, 0.0f, 100.0f);
+
+		static float col3[3] = {};
+		ImGui::ColorPicker3("ColorPicker3", col3, ImGuiColorEditFlags_::ImGuiColorEditFlags_InputRGB);
+		
+		static float col4[4] = {};
+		ImGui::ColorPicker4("ColorPicker4", col4, ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
+
+
 		ImGui::End();
 		ImGui::Render();
 
