@@ -54,7 +54,7 @@ PixelOutput BasicPS(BasicType input)
 	output.normal.a = 1.0f;
 	return output;
 #else // フォワード
-	float3 light = normalize(lightVec);
+	float3 light = normalize(lightVec.xyz);
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
 	float4 toonDif = toon.Sample(smpToon, float2(0.0f, 1.0f - diffuseB));
