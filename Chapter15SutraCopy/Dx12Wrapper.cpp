@@ -1392,7 +1392,7 @@ HRESULT Dx12Wrapper::CreateCameraConstantBuffer()
 	_mappedScene->view = viewMat;
 	_mappedScene->proj = projMat;
 	XMVECTOR det;
-	_mappedScene->invviewproj = XMMatrixInverse(&det, projMat * viewMat);
+	_mappedScene->invviewproj = XMMatrixInverse(&det, viewMat * projMat);
 	_mappedScene->eye = eye;
 
 	// –@ü‚ÍYã•ûŒüAŒ´“_‚ğ’Ê‚é•½–Ê
