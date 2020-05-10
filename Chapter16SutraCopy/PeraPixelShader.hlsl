@@ -20,6 +20,13 @@ cbuffer Weight : register(b0)
 	//float bkweights[8];
 };
 
+cbuffer PostSetting : register(b1)
+{
+	bool isDebugDisp;
+	bool isSSAO;
+	float3 bloomColor;
+};
+
 float4 Get5x5GaussianBlur(Texture2D<float4> tex, SamplerState smp, float2 uv, float dx, float dy)
 {
 	float4 ret = 0;
@@ -70,45 +77,48 @@ float4 PeraUVGradPS(PeraType input) : SV_TARGET
 
 float4 PeraPS(PeraType input) : SV_TARGET
 {
-	if (input.uv.x < 0.2f && input.uv.y < 0.2f) // 深度表示
+	if (isDebugDisp)
 	{
-		float depth = depthTex.Sample(smp, input.uv * 5.0f);
-		depth = 1.0f - pow(depth, 30); // 奥を0、手前を1に
-		return float4(depth, depth, depth, 1.0f);
-	}
-	else if (input.uv.x < 0.2f && input.uv.y < 0.4f) // シャドウマップ表示
-	{
-		float depth = lightDepthTex.Sample(smp, (input.uv - float2(0.0f, 0.2f)) * 5.0f);
-		depth = 1.0f - depth; // 奥を0、手前を1に
+		if (input.uv.x < 0.2f && input.uv.y < 0.2f) // 深度表示
+		{
+			float depth = depthTex.Sample(smp, input.uv * 5.0f);
+			depth = 1.0f - pow(depth, 30); // 奥を0、手前を1に
+			return float4(depth, depth, depth, 1.0f);
+		}
+		else if (input.uv.x < 0.2f && input.uv.y < 0.4f) // シャドウマップ表示
+		{
+			float depth = lightDepthTex.Sample(smp, (input.uv - float2(0.0f, 0.2f)) * 5.0f);
+			depth = 1.0f - depth; // 奥を0、手前を1に
 		// 平行投影なのでpowしなくても十分みやすい
-		return float4(depth, depth, depth, 1.0f);
-	}
-	else if (input.uv.x < 0.2f && input.uv.y < 0.6f) // 法線表示
-	{
-		return texNormal.Sample(smp, (input.uv - float2(0.0f, 0.4f)) * 5.0f);
-	}
-	else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
-	{
+			return float4(depth, depth, depth, 1.0f);
+		}
+		else if (input.uv.x < 0.2f && input.uv.y < 0.6f) // 法線表示
+		{
+			return texNormal.Sample(smp, (input.uv - float2(0.0f, 0.4f)) * 5.0f);
+		}
+		else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
+		{
 #if 0 // ディファード実験
-		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
+			return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
 #if 0 // ブルーム
-		return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 縮小高輝度表示
+			return texShrinkHighLum.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // 縮小高輝度表示
 #else // SSAO
-		float s = texSSAO.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
-		return float4(s, s, s, 1.0f);
+			float s = texSSAO.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f);
+			return float4(s, s, s, 1.0f);
 #endif
 #endif
-	}
-	else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
-	{
+		}
+		else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
+		{
 #if 0 // ディファード実験
-		return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
+			return tex.Sample(smp, (input.uv - float2(0.0f, 0.6f)) * 5.0f); // カラー表示
 #else // フォワード
 #if 0 // ブルーム
-		return texShrink.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 縮小カラー表示
+			return texShrink.Sample(smp, (input.uv - float2(0.0f, 0.8f)) * 5.0f); // 縮小カラー表示
 #endif
 #endif
+		}
 	}
 
 #if 0 // ディファード実験
@@ -190,7 +200,14 @@ float4 PeraPS(PeraType input) : SV_TARGET
 	return lerp(retColor[0], retColor[1], t);
 #else
 	float4 col = tex.Sample(smp, input.uv);
-	return float4(col.rgb * texSSAO.Sample(smp, input.uv), col.a);
+	if (isSSAO)
+	{
+		return float4(col.rgb * texSSAO.Sample(smp, input.uv), col.a);
+	}
+	else
+	{
+		return col;
+	}
 #endif
 #endif // ディファードorフォワード
 }

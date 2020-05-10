@@ -119,7 +119,19 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _aoRTVDH = nullptr;
 	ComPtr<ID3D12DescriptorHeap> _aoSRVDH = nullptr;
 
+	// Imguiライブラリに使わせる定数バッファ
 	ComPtr<ID3D12DescriptorHeap> _heapForImgui = nullptr;
+
+	struct PostSetting
+	{
+		bool isDebugDisp = false;
+		bool isSSAO = false;
+		DirectX::XMFLOAT4 bloomColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+	};
+
+	ComPtr<ID3D12Resource> _postSettingResource = nullptr;
+	PostSetting* _mappedPostSetting = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _postSettingDH = nullptr;
 
 	ComPtr<ID3D12Resource> CreateGrayGradientTexture();
 	ComPtr<ID3D12Resource> CreateWhiteTexture();
@@ -143,5 +155,6 @@ private:
 	HRESULT CreatePeraPipeline();
 	HRESULT CreateTransformConstantBuffer();
 	HRESULT CreateTransformBufferView();
+	HRESULT CreatePostSetting();
 };
 

@@ -318,6 +318,13 @@ Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 		return;
 	}
 
+	result = CreatePostSetting();
+	if (FAILED(result))
+	{
+		assert(false);
+		return;
+	}
+
 	result = CreateConstantBufferForPera();
 	if (FAILED(result))
 	{
@@ -991,29 +998,39 @@ bool Dx12Wrapper::CheckResult(HRESULT result, ID3DBlob* error) {
 
 HRESULT Dx12Wrapper::CreatePeraPipeline()
 {
-	D3D12_DESCRIPTOR_RANGE range[5] = {};
+	D3D12_DESCRIPTOR_RANGE range[6] = {};
 	// ガウシアンウェイトCBVのb0
 	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	range[0].BaseShaderRegister = 0;
 	range[0].NumDescriptors = 1;
+	range[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	// ペラ1、2SRVのt0、法線SRVのt1、高輝度SRVのt2、縮小高輝度SRVのt3、被写界深度用SRVのt4
 	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[1].BaseShaderRegister = 0;
 	range[1].NumDescriptors = 5;
+	range[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	// ディストーションテクスチャSVRのt5
 	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[2].BaseShaderRegister = 5;
 	range[2].NumDescriptors = 1;
+	range[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	// 深度値テクスチャSRVとシャドウマップSRVのt6とt7
 	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[3].BaseShaderRegister = 6;
 	range[3].NumDescriptors = 2;
+	range[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	// SSAOテクスチャSRVのt8
 	range[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	range[4].BaseShaderRegister = 8;
 	range[4].NumDescriptors = 1;
+	range[4].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	// ポストプロセスセッティングCBVのb1
+	range[5].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	range[5].BaseShaderRegister = 1;
+	range[5].NumDescriptors = 1;
+	range[5].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	D3D12_ROOT_PARAMETER rp[5] = {};
+	D3D12_ROOT_PARAMETER rp[6] = {};
 	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[0].DescriptorTable.pDescriptorRanges = &range[0];
@@ -1039,10 +1056,15 @@ HRESULT Dx12Wrapper::CreatePeraPipeline()
 	rp[4].DescriptorTable.pDescriptorRanges = &range[4];
 	rp[4].DescriptorTable.NumDescriptorRanges = 1;
 
+	rp[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rp[5].DescriptorTable.pDescriptorRanges = &range[5];
+	rp[5].DescriptorTable.NumDescriptorRanges = 1;
+
 	D3D12_STATIC_SAMPLER_DESC sampler = CD3DX12_STATIC_SAMPLER_DESC(0);
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
-	rsDesc.NumParameters = 5;
+	rsDesc.NumParameters = 6;
 	rsDesc.pParameters = rp;
 	rsDesc.NumStaticSamplers = 1;
 	rsDesc.pStaticSamplers = &sampler;
@@ -1446,6 +1468,55 @@ HRESULT Dx12Wrapper::CreateTransformBufferView()
 	return result;
 }
 
+HRESULT Dx12Wrapper::CreatePostSetting()
+{
+	HRESULT result = _dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(PostSetting) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_postSettingResource.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	result = _postSettingResource->Map(0, nullptr, (void**)&_mappedPostSetting);
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	// ディスクリプタヒープとCBV作成
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	result = _dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(_postSettingDH.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return result;
+	}
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _postSettingResource->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (UINT)_postSettingResource->GetDesc().Width;
+
+	_dev->CreateConstantBufferView(
+		&cbvDesc,
+		_postSettingDH->GetCPUDescriptorHandleForHeapStart()
+	);
+
+	return result;
+}
+
 ComPtr<ID3D12Resource> Dx12Wrapper::CreateGrayGradientTexture()
 {
 	//TODO: CreateXxxTexture()で共通の処理が多いので共通化したい
@@ -1632,10 +1703,12 @@ ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture() const
 
 void Dx12Wrapper::SetDebugDisplay(bool flg)
 {
+	_mappedPostSetting->isDebugDisp = flg;
 }
 
 void Dx12Wrapper::SetSSAO(bool flg)
 {
+	_mappedPostSetting->isSSAO = flg;
 }
 
 void Dx12Wrapper::SetSelfShadow(bool flg)
@@ -2022,6 +2095,11 @@ void Dx12Wrapper::Draw()
 	// SSAOテクスチャSRVをt8に設定
 	_cmdList->SetDescriptorHeaps(1, _aoSRVDH.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(4, _aoSRVDH->GetGPUDescriptorHandleForHeapStart());
+
+
+	// ポストプロセスセッティングCBVをb1に設定
+	_cmdList->SetDescriptorHeaps(1, _postSettingDH.GetAddressOf());
+	_cmdList->SetGraphicsRootDescriptorTable(5, _postSettingDH->GetGPUDescriptorHandleForHeapStart());
 
 #if 1
 	_cmdList->SetPipelineState(_peraPipeline.Get());

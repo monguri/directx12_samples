@@ -171,13 +171,11 @@ void Application::Run()
 
 		static bool blnDebugDisp = false;
 		ImGui::Checkbox("Debug Display", &blnDebugDisp);
-		// TODO:ŽÀ‘•
-		//_dx12->SetDebugDisplay(blnDebugDisp);
+		_dx12->SetDebugDisplay(blnDebugDisp);
 
 		static bool blnSSAO = false;
 		ImGui::Checkbox("SSAO on/off", &blnSSAO);
-		// TODO:ŽÀ‘•
-		//_dx12->SetSSAO(blnSSAO);
+		_dx12->SetSSAO(blnSSAO);
 
 		static bool blnShadowmap = false;
 		ImGui::Checkbox("Self Shadow on/off", &blnShadowmap);
@@ -200,8 +198,7 @@ void Application::Run()
 
 		static float bloomCol[3] = {};
 		ImGui::ColorPicker3("Bloom color", bloomCol);
-		// TODO:ŽÀ‘•
-		//_dx12->SetBloomColor(bloomCol);
+		_dx12->SetBloomColor(bloomCol);
 
 		ImGui::End();
 		ImGui::Render();
