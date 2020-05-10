@@ -38,7 +38,7 @@ uint instNo : SV_InstanceID
 	output.svpos = mul(mul(proj, view), pos);
 	output.tpos = mul(lightCamera, pos);
 	normal.w = 0;
-	output.normal = mul(world, normal);
+	output.normal = mul(world, mul(bm, normal));
 	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
 	// 本ではmul(view, eye)にしているがrayはワールド座標で扱うのでviewは乗算しないのが正しい。実際にスペキュラをデバッグ表示して確認した

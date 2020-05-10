@@ -30,7 +30,7 @@ min16uint2 weight : WEIGHT
 	pos = mul(world, pos);
 	output.svpos = mul(mul(proj, view), pos);
 	normal.w = 0;
-	output.normal = mul(world, normal);
+	output.normal = mul(world, mul(bm, normal));
 	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
 	// 本ではmul(view, eye)にしているがrayはワールド座標で扱うのでviewは乗算しないのが正しい。実際にスペキュラをデバッグ表示して確認した
