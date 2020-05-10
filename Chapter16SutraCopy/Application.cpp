@@ -2,7 +2,9 @@
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
 #include "PMDActor.h"
-#include <tchar.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx12.h"
 
 void DebugOutputFormatString(const char* format, ...)
 {
@@ -51,6 +53,34 @@ bool Application::Init()
 
 	_dx12.reset(new Dx12Wrapper(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(*_dx12));
+
+	// imguiの初期化
+	if (ImGui::CreateContext() == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	bool bInResult = ImGui_ImplWin32_Init(_hwnd);
+	if (!bInResult)
+	{
+		assert(false);
+		return false;
+	}
+
+	bInResult = ImGui_ImplDX12_Init(
+		_dx12->Device().Get(),
+		1,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		_dx12->GetHeapForImgui().Get(),
+		_dx12->GetHeapForImgui()->GetCPUDescriptorHandleForHeapStart(),
+		_dx12->GetHeapForImgui()->GetGPUDescriptorHandleForHeapStart()
+	);
+	if (!bInResult)
+	{
+		assert(false);
+		return false;
+	}
 
 	// モデルを複数配置
 	_actor = std::make_shared<PMDActor>(*_dx12, "model/初音ミク.pmd");
@@ -136,7 +166,7 @@ void Application::CreateGameWindow()
 	// ウィンドウの生成
 	_windowClass.cbSize = sizeof(WNDCLASSEX);
 	_windowClass.lpfnWndProc = (WNDPROC)WindowProcedure;
-	_windowClass.lpszClassName = _T("DX12Sample");
+	_windowClass.lpszClassName = "DX12Sample";
 	_windowClass.hInstance = GetModuleHandle(nullptr);
 
 	RegisterClassEx(&_windowClass);
@@ -146,7 +176,7 @@ void Application::CreateGameWindow()
 
 	_hwnd = CreateWindow(
 		_windowClass.lpszClassName,
-		_T("DX12サンプル"),
+		"DX12サンプル",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
