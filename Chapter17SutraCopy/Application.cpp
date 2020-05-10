@@ -2,6 +2,8 @@
 #include "Dx12Wrapper.h"
 #include "PMDRenderer.h"
 #include "PMDActor.h"
+#include <Effekseer.h>
+#include <EffekseerRendererDX12.h>
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"

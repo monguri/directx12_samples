@@ -10,6 +10,9 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "DirectXTex.lib")
+#pragma comment(lib, "EffekseerRendererDX12.lib")
+#pragma comment(lib, "Effekseer.lib")
+#pragma comment(lib, "LLGI.lib")
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
