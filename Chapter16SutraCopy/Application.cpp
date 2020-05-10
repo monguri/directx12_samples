@@ -181,8 +181,7 @@ void Application::Run()
 
 		static bool blnShadowmap = false;
 		ImGui::Checkbox("Self Shadow on/off", &blnShadowmap);
-		// TODO:ŽÀ‘•
-		//_dx12->SetSelfShadow(blnShadowmap);
+		_dx12->SetSelfShadow(blnShadowmap);
 
 		if (ImGui::SliderFloat("Field of view", &fov, pi / 6.0f, pi * 5.0f / 6.0f))
 		{
@@ -192,8 +191,7 @@ void Application::Run()
 		static float lightVec[3] = {1.0f, -1.0f, 1.0f};
 		if (ImGui::SliderFloat3("Light vector", lightVec, -1.0f, 1.0f))
 		{
-			// TODO:ŽÀ‘•
-			//_dx12->SetLightVector(lightVec);
+			_dx12->SetLightVector(lightVec);
 		}
 		
 		static float bgCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};

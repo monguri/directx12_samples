@@ -189,7 +189,9 @@ struct SceneMatrix
 	XMMATRIX invviewproj;
 	XMMATRIX lightCamera; // ライトビュープロジェクション
 	XMMATRIX shadow;
+	XMFLOAT4 lightVec; // アラインメントを防ぐためにvec4に
 	XMFLOAT3 eye;
+	bool isSelfShadow;
 };
 
 Dx12Wrapper::Dx12Wrapper(HWND hwnd)
@@ -1638,6 +1640,7 @@ void Dx12Wrapper::SetSSAO(bool flg)
 
 void Dx12Wrapper::SetSelfShadow(bool flg)
 {
+	_isSelfShadow = flg;
 }
 
 void Dx12Wrapper::SetFov(float fov)
@@ -1645,8 +1648,11 @@ void Dx12Wrapper::SetFov(float fov)
 	_fov = fov;
 }
 
-void Dx12Wrapper::SetLightVector(bool flg)
+void Dx12Wrapper::SetLightVector(float vec[3])
 {
+	_lightVec.x = vec[0];
+	_lightVec.y = vec[1];
+	_lightVec.z = vec[2];
 }
 
 void Dx12Wrapper::SetBackColor(float col[4])
@@ -1680,11 +1686,17 @@ void Dx12Wrapper::SetCameraSetting()
 	XMVECTOR det;
 	_mappedScene->invviewproj = XMMatrixInverse(&det, viewMat * projMat);
 
+	_mappedScene->lightVec.x = _lightVec.x;
+	_mappedScene->lightVec.y = _lightVec.y;
+	_mappedScene->lightVec.z = _lightVec.z;
+	_mappedScene->lightVec.w = 0.0f;
+	// w要素はアラインメントのためにXMFLOAT4にしただけなので使わない
+	_mappedScene->isSelfShadow = _isSelfShadow;
+
 	// 法線はY上方向、原点を通る平面
 	XMFLOAT4 planeVec(0.0f, 1.0f, 0.0f, 0.0f);
 	// ライトの方向ベクトルの逆方向
-	XMFLOAT4 light(-1.0f, 1.0f, -1.0f, 0.0f); // w要素は平行光源ということで0でいい
-	const XMVECTOR& lightVec = XMLoadFloat4(&light);
+	const XMVECTOR& lightVec = -XMLoadFloat3(&_lightVec); // w要素は平行光源ということで0でいい
 	_mappedScene->shadow = XMMatrixShadow(
 		XMLoadFloat4(&planeVec),
 		lightVec

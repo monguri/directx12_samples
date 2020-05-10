@@ -30,7 +30,7 @@ public:
 	void SetSSAO(bool flg);
 	void SetSelfShadow(bool flg);
 	void SetFov(float fov);
-	void SetLightVector(bool flg);
+	void SetLightVector(float vec[3]);
 	void SetBackColor(float col[4]);
 	void SetBloomColor(bool flg);
 
@@ -71,8 +71,11 @@ private:
 	ComPtr<ID3D12Resource> _sceneCB = nullptr;
 
 	struct SceneMatrix* _mappedScene = nullptr;
+	// ここでの初期値は1フレーム目にのみ使われる
 	float _fov = DirectX::XM_PIDIV4;
 	float _bgColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	DirectX::XMFLOAT3 _lightVec = {1.0f, -1.0f, 1.0f};
+	bool _isSelfShadow = false;
 
 	ComPtr<ID3D12Fence> _fence = nullptr;
 	UINT _fenceVal = 0;

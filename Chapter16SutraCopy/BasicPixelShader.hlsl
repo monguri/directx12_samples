@@ -9,6 +9,18 @@ SamplerState smp : register(s0);
 SamplerState smpToon : register(s1);
 SamplerComparisonState shadowSmp : register(s2);
 
+cbuffer SceneData : register(b0)
+{
+	matrix view;
+	matrix proj;
+	matrix invviewproj;
+	matrix lightCamera;
+	matrix shadow;
+	float4 lightVec;
+	float3 eye;
+	bool isSelfShadow;
+}
+
 cbuffer Material : register(b2)
 {
 	float4 diffuse;
@@ -42,7 +54,7 @@ PixelOutput BasicPS(BasicType input)
 	output.normal.a = 1.0f;
 	return output;
 #else // フォワード
-	float3 light = normalize(float3(1.0f, -1.0f, 1.0f));
+	float3 light = normalize(lightVec);
 
 	float diffuseB = saturate(dot(-light, input.normal.xyz));
 	float4 toonDif = toon.Sample(smpToon, float2(0.0f, 1.0f - diffuseB));
@@ -72,8 +84,10 @@ PixelOutput BasicPS(BasicType input)
 	}
 #else // SamplerComparisonStateを使った比較
 	float isShadow = lightDepthTex.SampleCmp(shadowSmp, shadowUV, posFromLightVP.z - 0.005f);
-	// 陰は一旦カット
-	//shadowWeight = lerp(0.5f, 1.0f, isShadow);
+	if (isSelfShadow)
+	{
+		shadowWeight = lerp(0.5f, 1.0f, isShadow);
+	}
 #endif
 
 	PixelOutput output;

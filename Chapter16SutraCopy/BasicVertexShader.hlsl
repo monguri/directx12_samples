@@ -7,7 +7,9 @@ cbuffer SceneData : register(b0)
 	matrix invviewproj;
 	matrix lightCamera;
 	matrix shadow;
+	float4 lightVec;
 	float3 eye;
+	bool isSelfShadow;
 }
 
 cbuffer Transform : register(b1)
