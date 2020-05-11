@@ -96,6 +96,7 @@ bool Application::Init()
 		return false;
 	}
 
+	// Effekseerの初期化
 	DXGI_FORMAT bbFormat[] = {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM};
 	_efkRenderer = EffekseerRendererDX12::Create(
 		_dx12->Device().Get(),
@@ -115,6 +116,34 @@ bool Application::Init()
 
 	_efkManager = Effekseer::Manager::Create(10000);
 	if (_efkManager == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	// 左手系を指定
+	_efkManager->SetCoordinateSystem(Effekseer::CoordinateSystem::LH);
+
+	// 各レンダラをプリセットのものに設定
+	_efkManager->SetSpriteRenderer(_efkRenderer->CreateSpriteRenderer());
+	_efkManager->SetRibbonRenderer(_efkRenderer->CreateRibbonRenderer());
+	_efkManager->SetRingRenderer(_efkRenderer->CreateRingRenderer());
+	_efkManager->SetTrackRenderer(_efkRenderer->CreateTrackRenderer());
+	_efkManager->SetModelRenderer(_efkRenderer->CreateModelRenderer());
+
+	_efkManager->SetTextureLoader(_efkRenderer->CreateTextureLoader());
+	_efkManager->SetModelLoader(_efkRenderer->CreateModelLoader());
+
+	// DirectX12専用の設定
+	_efkMemoryPool = EffekseerRendererDX12::CreateSingleFrameMemoryPool(_efkRenderer);
+	if (_efkMemoryPool == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	_efkCmdList = EffekseerRendererDX12::CreateCommandList(_efkRenderer, _efkMemoryPool);
+	if (_efkCmdList == nullptr)
 	{
 		assert(false);
 		return false;
