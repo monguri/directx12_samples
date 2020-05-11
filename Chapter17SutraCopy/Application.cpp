@@ -13,7 +13,7 @@ Effekseer::Manager* _efkManager = nullptr;
 EffekseerRenderer::SingleFrameMemoryPool* _efkMemoryPool = nullptr;
 EffekseerRenderer::CommandList* _efkCmdList = nullptr;
 Effekseer::Effect* _effect = nullptr;
-Effekseer::Handle* _efkHandle = nullptr;
+Effekseer::Handle _efkHandle;
 
 void DebugOutputFormatString(const char* format, ...)
 {
@@ -96,7 +96,9 @@ bool Application::Init()
 		return false;
 	}
 
+	//
 	// Effekseerの初期化
+	//
 	DXGI_FORMAT bbFormat[] = {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM};
 	_efkRenderer = EffekseerRendererDX12::Create(
 		_dx12->Device().Get(),
@@ -148,6 +150,17 @@ bool Application::Init()
 		assert(false);
 		return false;
 	}
+
+	// efkファイルの読み込み
+	_effect = Effekseer::Effect::Create(_efkManager, (const EFK_CHAR*)L"effect/10/SimpleLaser.efk", 1.0f, (const EFK_CHAR*)L"effect/10");
+	if (_effect == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	// efkの再生
+	_efkHandle = _efkManager->Play(_effect, 0, 0, 0);
 
 	// モデルを複数配置
 	_actor = std::make_shared<PMDActor>(*_dx12, "model/初音ミク.pmd");
