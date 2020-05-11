@@ -107,6 +107,16 @@ ComPtr<ID3D12CommandQueue> Dx12Wrapper::CmdQue() const
 	return _cmdQueue;
 }
 
+DirectX::XMMATRIX Dx12Wrapper::ViewMatrix() const
+{
+	return _mappedScene->view;
+}
+
+DirectX::XMMATRIX Dx12Wrapper::ProjMatrix() const
+{
+	return _mappedScene->proj;
+}
+
 std::string Dx12Wrapper::GetExtension(const std::string& path)
 {
 	size_t idx = path.rfind('.');
@@ -189,18 +199,6 @@ ComPtr<ID3D12Resource> Dx12Wrapper::LoadTextureFromFile(const std::string& texPa
 	_resourceTable[texPath] = texbuff;
 	return texbuff;
 }
-
-struct SceneMatrix
-{
-	XMMATRIX view;
-	XMMATRIX proj;
-	XMMATRIX invviewproj;
-	XMMATRIX lightCamera; // ライトビュープロジェクション
-	XMMATRIX shadow;
-	XMFLOAT4 lightVec; // アラインメントを防ぐためにvec4に
-	XMFLOAT3 eye;
-	bool isSelfShadow;
-};
 
 Dx12Wrapper::Dx12Wrapper(HWND hwnd)
 {

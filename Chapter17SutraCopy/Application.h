@@ -25,5 +25,6 @@ private:
 	void operator=(const Application&) = delete;
 
 	void CreateGameWindow();
+	void SyncronizeEffekseerCamera();
 };
 

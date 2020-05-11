@@ -20,6 +20,9 @@ public:
 	ComPtr<ID3D12Device> Device() const;
 	ComPtr<ID3D12GraphicsCommandList> CommandList() const;
 	ComPtr<ID3D12CommandQueue> CmdQue() const;
+	DirectX::XMMATRIX ViewMatrix() const;
+	DirectX::XMMATRIX ProjMatrix() const;
+
 	static std::string GetExtension(const std::string& path);
 	ComPtr<ID3D12Resource> LoadTextureFromFile(const std::string& texPath);
 	bool CheckResult(HRESULT result , ID3DBlob* error=nullptr);
@@ -71,7 +74,19 @@ private:
 	ComPtr<ID3D12Resource> _lightDepthBuffer = nullptr;
 	ComPtr<ID3D12Resource> _sceneCB = nullptr;
 
-	struct SceneMatrix* _mappedScene = nullptr;
+	struct SceneMatrix
+	{
+		DirectX::XMMATRIX view;
+		DirectX::XMMATRIX proj;
+		DirectX::XMMATRIX invviewproj;
+		DirectX::XMMATRIX lightCamera; // ライトビュープロジェクション
+		DirectX::XMMATRIX shadow;
+		DirectX::XMFLOAT4 lightVec; // アラインメントを防ぐためにvec4に
+		DirectX::XMFLOAT3 eye;
+		bool isSelfShadow;
+	};
+
+	SceneMatrix* _mappedScene = nullptr;
 	// ここでの初期値は1フレーム目にのみ使われる
 	float _fov = DirectX::XM_PIDIV4;
 	float _bgColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};

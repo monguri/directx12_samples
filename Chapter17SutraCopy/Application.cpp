@@ -150,6 +150,9 @@ bool Application::Init()
 		assert(false);
 		return false;
 	}
+	_efkRenderer->SetCommandList(_efkCmdList);
+
+	SyncronizeEffekseerCamera();
 
 	// efkファイルの読み込み
 	_effect = Effekseer::Effect::Create(_efkManager, (const EFK_CHAR*)L"effect/10/SimpleLaser.efk", 1.0f, (const EFK_CHAR*)L"effect/10");
@@ -220,23 +223,53 @@ void Application::Run()
 
 		_dx12->SetCameraSetting();
 		_pmdRenderer->Update();
+		SyncronizeEffekseerCamera();
 
+		//
+		// シャドウマップ描画
+		//
 		_pmdRenderer->BeforeDrawFromLight();
 		_dx12->PreDrawShadow();
 		_pmdRenderer->DrawFromLight();
 
+		//
+		// ジオメトリパス ここから
+		//
 		_pmdRenderer->BeforeDraw();
 		_dx12->PreDrawToPera1();
-		_pmdRenderer->Draw();
-		_dx12->PostDrawToPera1();
 
+		_pmdRenderer->Draw();
+
+		// エフェクト描画
+		_efkManager->Update();
+		_efkMemoryPool->NewFrame();
+
+		EffekseerRendererDX12::BeginCommandList(_efkCmdList, _dx12->CommandList().Get());
+		_efkRenderer->BeginRendering();
+		_efkManager->Draw();
+		_efkRenderer->EndRendering();
+		EffekseerRendererDX12::EndCommandList(_efkCmdList);
+
+		_dx12->PostDrawToPera1();
+		// ジオメトリパス ここまで
+
+		//
+		// ポストプロセス
+		//
 #if 0 // ペラ2に描画するパスは今は使わないのでコメントアウト
 		_dx12->DrawHorizontalBokeh();
 #endif
 		_dx12->DrawShrinkTextureForBlur();
 		_dx12->DrawAmbientOcclusion();
+
+		//
+		// 最終レンダーターゲットへの描画
+		//
 		_dx12->Draw();
 
+		//
+		// ImGuiの描画
+		//
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -281,6 +314,7 @@ void Application::Run()
 		_dx12->CommandList()->SetDescriptorHeaps(1, _dx12->GetHeapForImgui().GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _dx12->CommandList().Get());
 
+		// スワップ
 		_dx12->Flip();
 	}
 }
@@ -324,5 +358,25 @@ SIZE Application::GetWindowSize() const
 	ret.cx = window_width;
 	ret.cy = window_height;
 	return ret;
+}
+
+void Application::SyncronizeEffekseerCamera()
+{
+	Effekseer::Matrix44 fkViewMat;
+	Effekseer::Matrix44 fkProjMat;
+	const DirectX::XMMATRIX& view = _dx12->ViewMatrix();
+	const DirectX::XMMATRIX& proj = _dx12->ProjMatrix();
+
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			fkViewMat.Values[i][j] = view.r[i].m128_f32[j];
+			fkProjMat.Values[i][j] = proj.r[i].m128_f32[j];
+		}
+	}
+
+	_efkRenderer->SetCameraMatrix(fkViewMat);
+	_efkRenderer->SetProjectionMatrix(fkProjMat);
 }
 
