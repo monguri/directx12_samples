@@ -115,6 +115,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Dx12Wrapper.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="PMDActor.cpp" />
+    <ClCompile Include="PMDRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="Dx12Wrapper.h" />
+    <ClInclude Include="PMDActor.h" />
+    <ClInclude Include="PMDRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="BasicPixelShader.hlsl" />
+    <FxCompile Include="BasicVertexShader.hlsl" />
+    <FxCompile Include="PeraPixelShader.hlsl" />
+    <FxCompile Include="PeraVertexShader.hlsl" />
+    <FxCompile Include="SSAOPixelShader.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Type.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
