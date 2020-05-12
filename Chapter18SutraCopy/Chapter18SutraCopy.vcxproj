@@ -76,7 +76,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(DXTK12_DIR);$(EFK_ROOT_DIR)\Effekseer;$(EFK_ROOT_DIR)\EffekseerRendererDX12;$(DXTEX_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXTK12_DIR)\Inc;$(EFK_ROOT_DIR)\Effekseer;$(EFK_ROOT_DIR)\EffekseerRendererDX12;$(DXTEX_DIR)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -113,7 +113,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(DXTK12_DIR);$(EFK_ROOT_DIR)\Effekseer;$(EFK_ROOT_DIR)\EffekseerRendererDX12;$(DXTEX_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXTK12_DIR)\Inc;$(EFK_ROOT_DIR)\Effekseer;$(EFK_ROOT_DIR)\EffekseerRendererDX12;$(DXTEX_DIR)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
