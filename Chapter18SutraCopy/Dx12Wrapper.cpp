@@ -13,6 +13,7 @@
 #pragma comment(lib, "EffekseerRendererDX12.lib")
 #pragma comment(lib, "Effekseer.lib")
 #pragma comment(lib, "LLGI.lib")
+#pragma comment(lib, "DirectXTK12.lib")
 
 using namespace DirectX;
 using namespace Microsoft::WRL;

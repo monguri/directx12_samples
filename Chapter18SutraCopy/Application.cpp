@@ -7,6 +7,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
+#include <SpriteFont.h>
+#include <ResourceUploadBatch.h>
 
 EffekseerRenderer::Renderer* _efkRenderer = nullptr;
 Effekseer::Manager* _efkManager = nullptr;
