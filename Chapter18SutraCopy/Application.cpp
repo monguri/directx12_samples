@@ -17,6 +17,12 @@ EffekseerRenderer::CommandList* _efkCmdList = nullptr;
 Effekseer::Effect* _effect = nullptr;
 Effekseer::Handle _efkHandle;
 
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _heapForSpriteFont = nullptr;
+DirectX::GraphicsMemory* _gmemory = nullptr;
+DirectX::SpriteFont* _spriteFont = nullptr;
+DirectX::SpriteBatch* _spriteBatch = nullptr;
+
+
 void DebugOutputFormatString(const char* format, ...)
 {
 #ifdef _DEBUG
@@ -69,6 +75,46 @@ bool Application::Init()
 
 	_dx12.reset(new Dx12Wrapper(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(*_dx12));
+
+	//
+	// フォント用DirectXTK初期化
+	//
+
+	// GraphicsMemoryオブジェクトの初期化
+	_gmemory = new DirectX::GraphicsMemory(_dx12->Device().Get());
+
+	// SpriteBatchオブジェクトの初期化
+	DirectX::ResourceUploadBatch resUploadBatch(_dx12->Device().Get());
+	resUploadBatch.Begin();
+	DirectX::RenderTargetState rtState(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
+	DirectX::SpriteBatchPipelineStateDescription pd(rtState);
+	_spriteBatch = new DirectX::SpriteBatch(_dx12->Device().Get(), resUploadBatch, pd);
+	if (_spriteBatch == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+	
+	// SpriteFontオブジェクトの初期化
+	_heapForSpriteFont = _dx12->CreateDescriptorHeapForSpriteFont();
+	if (_heapForSpriteFont == nullptr)
+	{
+		assert(false);
+		return false;
+	}
+
+	_spriteFont = new DirectX::SpriteFont(
+		_dx12->Device().Get(),
+		resUploadBatch,
+		L"font/fonttest.spritefont",
+		_heapForSpriteFont ->GetCPUDescriptorHandleForHeapStart(),
+		_heapForSpriteFont ->GetGPUDescriptorHandleForHeapStart()
+	);
+	if (_spriteFont == nullptr)
+	{
+		assert(false);
+		return false;
+	}
 
 	// imguiの初期化
 	if (ImGui::CreateContext() == nullptr)

@@ -822,19 +822,15 @@ HRESULT Dx12Wrapper::CreateAmbientOcclusionDescriptorHeap()
 
 HRESULT Dx12Wrapper::CreateDescriptorHeapForImgui()
 {
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	desc.NodeMask = 0;
-	desc.NumDescriptors = 1;
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	HRESULT result = _dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(_heapForImgui.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
+	_heapForImgui = CreateDescriptorHeapForSpriteFont();
+	if (_heapForImgui == nullptr)
 	{
-		assert(false);
-		return result;
+		return E_FAIL;
 	}
-
-	return result;
+	else
+	{
+		return S_OK;
+	}
 }
 
 ComPtr<ID3D12DescriptorHeap> Dx12Wrapper::GetHeapForImgui() const
@@ -1708,6 +1704,37 @@ ComPtr<ID3D12Resource> Dx12Wrapper::GetBlackTexture() const
 	return _blackTex;
 }
 
+D3D12_VIEWPORT Dx12Wrapper::GetViewPort() const
+{
+	const SIZE& winSize = Application::Instance().GetWindowSize();
+	D3D12_VIEWPORT vp;
+	vp.TopLeftX = vp.TopLeftY = 0;
+	vp.Width = (FLOAT)winSize.cx;
+	vp.Height = (FLOAT)winSize.cx;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 0.0f;
+	return vp;
+}
+
+ComPtr<ID3D12DescriptorHeap> Dx12Wrapper::CreateDescriptorHeapForSpriteFont()
+{
+	ComPtr<ID3D12DescriptorHeap> ret = nullptr;
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	HRESULT result = _dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(ret.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		assert(false);
+		return nullptr;
+	}
+
+	return ret;
+}
+
 void Dx12Wrapper::SetDebugDisplay(bool flg)
 {
 	_mappedPostSetting->isDebugDisp = flg;
@@ -1809,7 +1836,6 @@ void Dx12Wrapper::PreDrawShadow()
 	_cmdList->SetDescriptorHeaps(1, _sceneDescHeap.GetAddressOf());
 	_cmdList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
 
-	const SIZE& winSize = Application::Instance().GetWindowSize();
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, (float)shadow_definition, (float)shadow_definition);
 	_cmdList->RSSetViewports(1, &viewport);
 	CD3DX12_RECT scissorrect = CD3DX12_RECT(0, 0, shadow_definition, shadow_definition);

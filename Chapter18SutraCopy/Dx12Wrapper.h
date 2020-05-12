@@ -30,6 +30,8 @@ public:
 	ComPtr<ID3D12Resource> GetGrayGradientTexture() const;
 	ComPtr<ID3D12Resource> GetWhiteTexture() const;
 	ComPtr<ID3D12Resource> GetBlackTexture() const;
+	D3D12_VIEWPORT GetViewPort() const;
+	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeapForSpriteFont();
 	void SetDebugDisplay(bool flg);
 	void SetSSAO(bool flg);
 	void SetSelfShadow(bool flg);
