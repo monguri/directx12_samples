@@ -374,7 +374,7 @@ void Application::Run()
 		_spriteFont->DrawString(_spriteBatch, L"DirectX12の魔導書", DirectX::XMFLOAT2(100, 100), DirectX::Colors::Yellow);
 		_spriteBatch->End();
 
-		// フォントよりImGuiを前面にする
+		// ImGuiをフォントより先に描画するとビューポートがImGuiのものになってしまうのでフォントより後に描画する
 		_dx12->CommandList()->SetDescriptorHeaps(1, _dx12->GetHeapForImgui().GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _dx12->CommandList().Get());
 
