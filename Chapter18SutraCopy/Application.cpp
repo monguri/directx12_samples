@@ -86,6 +86,7 @@ bool Application::Init()
 	// SpriteBatchオブジェクトの初期化
 	DirectX::ResourceUploadBatch resUploadBatch(_dx12->Device().Get());
 	resUploadBatch.Begin();
+
 	DirectX::RenderTargetState rtState(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
 	DirectX::SpriteBatchPipelineStateDescription pd(rtState);
 	_spriteBatch = new DirectX::SpriteBatch(_dx12->Device().Get(), resUploadBatch, pd);
@@ -115,6 +116,11 @@ bool Application::Init()
 		assert(false);
 		return false;
 	}
+
+	const std::future<void>& future = resUploadBatch.End(_dx12->CmdQue().Get());
+	_dx12->WaitForCommandQueue();
+	future.wait();
+	_spriteBatch->SetViewport(_dx12->GetViewPort());
 
 	// imguiの初期化
 	if (ImGui::CreateContext() == nullptr)

@@ -51,6 +51,7 @@ public:
 	void DrawAmbientOcclusion();
 	void Draw();
 	void Flip();
+	void WaitForCommandQueue();
 
 private:
 	ComPtr<ID3D12Device> _dev = nullptr;

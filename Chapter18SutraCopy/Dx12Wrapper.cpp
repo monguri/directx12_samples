@@ -2171,15 +2171,8 @@ void Dx12Wrapper::Flip()
 	// コマンドリストの実行
 	ID3D12CommandList* cmdlists[] = { _cmdList.Get() };
 	_cmdQueue->ExecuteCommandLists(1, cmdlists);
-	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
 
-	if (_fence->GetCompletedValue() != _fenceVal)
-	{
-		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
-		_fence->SetEventOnCompletion(_fenceVal, event);
-		WaitForSingleObject(event, INFINITE);
-		CloseHandle(event);
-	}
+	WaitForCommandQueue();
 
 	// コマンドリストのクリア
 	_cmdAllocator->Reset();
@@ -2187,5 +2180,17 @@ void Dx12Wrapper::Flip()
 
 	// スワップ
 	_swapchain->Present(1, 0);
+}
+
+void Dx12Wrapper::WaitForCommandQueue()
+{
+	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
+	if (_fence->GetCompletedValue() < _fenceVal)
+	{
+		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+		_fence->SetEventOnCompletion(_fenceVal, event);
+		WaitForSingleObject(event, INFINITE);
+		CloseHandle(event);
+	}
 }
 
