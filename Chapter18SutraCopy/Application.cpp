@@ -365,11 +365,23 @@ void Application::Run()
 		ImGui::End();
 		ImGui::Render();
 
+		//
+		// フォントの描画
+		//
+		_dx12->CommandList().Get()->SetDescriptorHeaps(1, _heapForSpriteFont.GetAddressOf());
+		_spriteBatch->Begin(_dx12->CommandList().Get());
+		_spriteFont->DrawString(_spriteBatch, L"Hello World", DirectX::XMFLOAT2(102, 102), DirectX::Colors::Black);
+		_spriteFont->DrawString(_spriteBatch, L"Hello World", DirectX::XMFLOAT2(100, 100), DirectX::Colors::Yellow);
+		_spriteBatch->End();
+
+		// フォントよりImGuiを前面にする
 		_dx12->CommandList()->SetDescriptorHeaps(1, _dx12->GetHeapForImgui().GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _dx12->CommandList().Get());
 
 		// スワップ
 		_dx12->Flip();
+
+		_gmemory->Commit(_dx12->CmdQue().Get());
 	}
 }
 
