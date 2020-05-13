@@ -1710,9 +1710,9 @@ D3D12_VIEWPORT Dx12Wrapper::GetViewPort() const
 	D3D12_VIEWPORT vp;
 	vp.TopLeftX = vp.TopLeftY = 0;
 	vp.Width = (FLOAT)winSize.cx;
-	vp.Height = (FLOAT)winSize.cx;
+	vp.Height = (FLOAT)winSize.cy;
 	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
 	return vp;
 }
 
