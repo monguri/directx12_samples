@@ -107,7 +107,7 @@ bool Application::Init()
 	_spriteFont = new DirectX::SpriteFont(
 		_dx12->Device().Get(),
 		resUploadBatch,
-		L"font/fonttest.spritefont",
+		L"font/hgpop.spritefont",
 		_heapForSpriteFont ->GetCPUDescriptorHandleForHeapStart(),
 		_heapForSpriteFont ->GetGPUDescriptorHandleForHeapStart()
 	);
@@ -370,8 +370,8 @@ void Application::Run()
 		//
 		_dx12->CommandList().Get()->SetDescriptorHeaps(1, _heapForSpriteFont.GetAddressOf());
 		_spriteBatch->Begin(_dx12->CommandList().Get());
-		_spriteFont->DrawString(_spriteBatch, L"Hello World", DirectX::XMFLOAT2(102, 102), DirectX::Colors::Black);
-		_spriteFont->DrawString(_spriteBatch, L"Hello World", DirectX::XMFLOAT2(100, 100), DirectX::Colors::Yellow);
+		_spriteFont->DrawString(_spriteBatch, L"DirectX12の魔導書", DirectX::XMFLOAT2(102, 102), DirectX::Colors::Black);
+		_spriteFont->DrawString(_spriteBatch, L"DirectX12の魔導書", DirectX::XMFLOAT2(100, 100), DirectX::Colors::Yellow);
 		_spriteBatch->End();
 
 		// フォントよりImGuiを前面にする
