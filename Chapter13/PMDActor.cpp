@@ -3,7 +3,7 @@
 #include<cassert>
 #include<DirectXMath.h>
 #include<string>
-
+#include<algorithm>
 
 #include<sstream>//文字列ストリーム用
 #include<iomanip>//文字列マニピュレータ用(n桁そろえとか0埋めとかに使う)
@@ -833,6 +833,7 @@ PMDActor::CreateTransformBufferView() {
 	handle.ptr += _dx->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	dev->CreateConstantBufferView(&viewDesc, handle);
 
+	return true;
 }
 
 ComPtr<ID3D12DescriptorHeap>

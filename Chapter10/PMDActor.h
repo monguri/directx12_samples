@@ -4,6 +4,7 @@
 #include<DirectXMath.h>
 #include<vector>
 #include<map>
+#include<string>
 #include<unordered_map>
 #include<wrl.h>
 
@@ -90,7 +91,7 @@ private:
 
 	//PMDファイルのロード
 	HRESULT LoadPMDFile(const char* path);
-	void RecursiveMatrixMultipy(BoneNode* node, DirectX::XMMATRIX& mat);
+	void RecursiveMatrixMultipy(BoneNode* node, const DirectX::XMMATRIX& mat);
 	float _angle;//テスト用Y軸回転
 
 
@@ -99,11 +100,15 @@ private:
 		unsigned int frameNo;//フレーム№(アニメーション開始からの経過時間)
 		DirectX::XMVECTOR quaternion;//クォータニオン
 		DirectX::XMFLOAT2 p1, p2;//ベジェの中間コントロールポイント
-		KeyFrame(unsigned int fno, DirectX::XMVECTOR& q,const DirectX::XMFLOAT2& ip1,const DirectX::XMFLOAT2& ip2):
+		KeyFrame(
+			unsigned int fno,
+			const DirectX::XMVECTOR& q,
+			const DirectX::XMFLOAT2& ip1,
+			const DirectX::XMFLOAT2& ip2) :
 			frameNo(fno),
 			quaternion(q),
 			p1(ip1),
-			p2(ip2){}
+			p2(ip2) {}
 	};
 	std::unordered_map<std::string, std::vector<KeyFrame>> _motiondata;
 

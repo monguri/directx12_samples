@@ -4,6 +4,7 @@
 #include<DirectXMath.h>
 #include<vector>
 #include<map>
+#include<string>
 #include<unordered_map>
 #include<wrl.h>
 
@@ -116,7 +117,12 @@ private:
 		DirectX::XMVECTOR quaternion;//クォータニオン
 		DirectX::XMFLOAT3 offset;//IKの初期座標からのオフセット情報
 		DirectX::XMFLOAT2 p1, p2;//ベジェの中間コントロールポイント
-		KeyFrame(unsigned int fno, DirectX::XMVECTOR& q,DirectX::XMFLOAT3& ofst, DirectX::XMFLOAT2& ip1,const DirectX::XMFLOAT2& ip2):
+		KeyFrame(
+			unsigned int fno, 
+			const DirectX::XMVECTOR& q,
+			const DirectX::XMFLOAT3& ofst,
+			const DirectX::XMFLOAT2& ip1,
+			const DirectX::XMFLOAT2& ip2):
 			frameNo(fno),
 			quaternion(q),
 			offset(ofst),

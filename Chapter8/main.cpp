@@ -23,6 +23,20 @@
 
 using namespace DirectX;
 using namespace std;
+
+#pragma pack(push, 1)
+struct PMD_VERTEX
+{
+	XMFLOAT3 pos;
+	XMFLOAT3 normal;
+	XMFLOAT2 uv;
+	uint16_t bone_no[2];
+	uint8_t  weight;
+	uint8_t  EdgeFlag;
+	uint16_t dummy;
+};
+#pragma pack(pop)
+
 ///@brief コンソール画面にフォーマット付き文字列を表示
 ///@param format フォーマット(%dとか%fとかの)
 ///@param 可変長引数
@@ -63,8 +77,8 @@ std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, cons
 	//ファイルのフォルダ区切りは\と/の二種類が使用される可能性があり
 	//ともかく末尾の\か/を得られればいいので、双方のrfindをとり比較する
 	//int型に代入しているのは見つからなかった場合はrfindがepos(-1→0xffffffff)を返すため
-	int pathIndex1 = modelPath.rfind('/');
-	int pathIndex2 = modelPath.rfind('\\');
+	auto pathIndex1 = modelPath.rfind('/');
+	auto pathIndex2 = modelPath.rfind('\\');
 	auto pathIndex = max(pathIndex1, pathIndex2);
 	auto folderPath = modelPath.substr(0, pathIndex+1);
 	return folderPath + texPath;
@@ -75,7 +89,7 @@ std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, cons
 ///@return 拡張子
 string
 GetExtension(const std::string& path) {
-	int idx = path.rfind('.');
+	auto idx = path.rfind('.');
 	return path.substr(idx+1, path.length() - idx-1);
 }
 
@@ -84,7 +98,7 @@ GetExtension(const std::string& path) {
 ///@return 拡張子
 wstring
 GetExtension(const std::wstring& path) {
-	int idx = path.rfind(L'.');
+	auto idx = path.rfind(L'.');
 	return path.substr(idx + 1, path.length() - idx - 1);
 }
 
@@ -94,7 +108,7 @@ GetExtension(const std::wstring& path) {
 ///@return 分離前後の文字列ペア
 pair<string,string> 
 SplitFileName(const std::string& path, const char splitter='*') {
-	int idx = path.find(splitter);
+	auto idx = path.find(splitter);
 	pair<string, string> ret;
 	ret.first = path.substr(0, idx);
 	ret.second = path.substr(idx+1, path.length()-idx-1);
@@ -138,7 +152,6 @@ CreateGrayGradationTexture() {
 	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;//レイアウトについては決定しない
 	resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;//とくにフラグなし
 
-
 	D3D12_HEAP_PROPERTIES texHeapProp = {};
 	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;//特殊な設定なのでdefaultでもuploadでもなく
 	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;//ライトバックで
@@ -164,12 +177,13 @@ CreateGrayGradationTexture() {
 	auto it = data.begin();
 	unsigned int c=0xff;
 	for (; it != data.end();it+=4) {
-		auto col = (c << 0xff) | (c << 16) | (c << 8) | c;
+		auto col = (0xff << 24) | RGB(c,c,c);//RGBAが逆並びしているためRGBマクロと0xff<<24を用いて表す。
+		//auto col = (0xff << 24) | (c<<16)|(c<<8)|c;//これでもOK
 		std::fill(it, it+4, col);
 		--c;
 	}
 
-	result = gradBuff->WriteToSubresource(0, nullptr, data.data(), 4 * sizeof(unsigned int), sizeof(unsigned int)*data.size());
+	result = gradBuff->WriteToSubresource(0, nullptr, data.data(), 4 * sizeof(unsigned int), sizeof(unsigned int)*static_cast<UINT>(data.size()));
 	return gradBuff;
 }
 
@@ -209,7 +223,7 @@ CreateWhiteTexture() {
 	std::vector<unsigned char> data(4 * 4 * 4);
 	std::fill(data.begin(), data.end(), 0xff);
 
-	result = whiteBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, data.size());
+	result = whiteBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, static_cast<UINT>(data.size()));
 	return whiteBuff;
 }
 
@@ -249,7 +263,7 @@ CreateBlackTexture() {
 	std::vector<unsigned char> data(4 * 4 * 4);
 	std::fill(data.begin(), data.end(), 0x00);
 
-	result = blackBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, data.size());
+	result = blackBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, static_cast<UINT>(data.size()));
 	return blackBuff;
 }
 using LoadLambda_t = function<HRESULT(const wstring& path, TexMetadata*, ScratchImage&)>;
@@ -292,12 +306,12 @@ LoadTextureFromFile(std::string& texPath ) {
 
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc.Format = metadata.format;
-	resDesc.Width = metadata.width;//幅
-	resDesc.Height = metadata.height;//高さ
-	resDesc.DepthOrArraySize = metadata.arraySize;
+	resDesc.Width = static_cast<UINT>(metadata.width);//幅
+	resDesc.Height = static_cast<UINT>(metadata.height);//高さ
+	resDesc.DepthOrArraySize = static_cast<UINT16>(metadata.arraySize);
 	resDesc.SampleDesc.Count = 1;//通常テクスチャなのでアンチェリしない
 	resDesc.SampleDesc.Quality = 0;//
-	resDesc.MipLevels = metadata.mipLevels;//ミップマップしないのでミップ数は１つ
+	resDesc.MipLevels = static_cast<UINT16>(metadata.mipLevels);//ミップマップしないのでミップ数は１つ
 	resDesc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metadata.dimension);
 	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;//レイアウトについては決定しない
 	resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;//とくにフラグなし
@@ -318,8 +332,8 @@ LoadTextureFromFile(std::string& texPath ) {
 	result = texbuff->WriteToSubresource(0,
 		nullptr,//全領域へコピー
 		img->pixels,//元データアドレス
-		img->rowPitch,//1ラインサイズ
-		img->slicePitch//全サイズ
+		static_cast<UINT>(img->rowPitch),//1ラインサイズ
+		static_cast<UINT>(img->slicePitch)//全サイズ
 	);
 	if (FAILED(result)) {
 		return nullptr;
@@ -454,7 +468,7 @@ HRESULT InitializeCommand() {
 	if (FAILED(result)) {
 		assert(0);
 	}
-
+	return S_OK;
 }
 
 HRESULT CreateFinalRenderTarget(ID3D12DescriptorHeap*& rtvHeaps, vector<ID3D12Resource *>& backBuffers) {
@@ -480,13 +494,14 @@ HRESULT CreateFinalRenderTarget(ID3D12DescriptorHeap*& rtvHeaps, vector<ID3D12Re
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-	for (int i = 0; i < swcDesc.BufferCount; ++i) {
-		result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]));
+	for (size_t i = 0; i < swcDesc.BufferCount; ++i) {
+		result = _swapchain->GetBuffer(static_cast<UINT>(i), IID_PPV_ARGS(&backBuffers[i]));
 		assert(SUCCEEDED(result));
 		rtvDesc.Format = backBuffers[i]->GetDesc().Format;
 		_dev->CreateRenderTargetView(backBuffers[i], &rtvDesc, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
+	return S_OK;
 }
 
 
@@ -524,7 +539,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] = loadLambdaTable["jpg"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-		return LoadFromWICFile(path.c_str(), 0, meta, img);
+		return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
 	};
 
 	loadLambdaTable["tga"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
@@ -532,7 +547,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	};
 
 	loadLambdaTable["dds"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-		return LoadFromDDSFile(path.c_str(), 0, meta, img);
+		return LoadFromDDSFile(path.c_str(), DDS_FLAGS_NONE, meta, img);
 	};
 
 	//深度バッファ作成
@@ -607,8 +622,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//string strModelPath = "Model/reimu/reimu.pmd";
 	//string strModelPath = "Model/巡音ルカ.pmd";
 	string strModelPath = "Model/初音ミク.pmd";
-	
-	auto fp = fopen(strModelPath.c_str(), "rb");
+	FILE* fp;
+	fopen_s(&fp,strModelPath.c_str(), "rb");
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
 
@@ -654,31 +669,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	};
 
 	constexpr unsigned int pmdvertex_size = 38;//頂点1つあたりのサイズ
-	std::vector<unsigned char> vertices(vertNum*pmdvertex_size);//バッファ確保
-	fread(vertices.data(), vertices.size(), 1, fp);//一気に読み込み
+	std::vector<PMD_VERTEX> vertices(vertNum);//バッファ確保
+	for (auto i = 0; i < vertNum; i++)
+	{
+		fread(&vertices[i], pmdvertex_size, 1, fp);
+	}
 
 	unsigned int indicesNum;//インデックス数
 	fread(&indicesNum, sizeof(indicesNum), 1, fp);//
 
 	//UPLOAD(確保は可能)
+	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(vertices.size() * sizeof(PMD_VERTEX));
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vertices.size()),
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&vertBuff));
 
-	unsigned char* vertMap = nullptr;
+	PMD_VERTEX* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
 	std::copy(vertices.begin(), vertices.end(), vertMap);
 	vertBuff->Unmap(0, nullptr);
 
 	D3D12_VERTEX_BUFFER_VIEW vbView = {};
 	vbView.BufferLocation = vertBuff->GetGPUVirtualAddress();//バッファの仮想アドレス
-	vbView.SizeInBytes = vertices.size();//全バイト数
-	vbView.StrideInBytes = pmdvertex_size;//1頂点あたりのバイト数
+	vbView.SizeInBytes = static_cast<UINT>(vertices.size() * sizeof(PMD_VERTEX));//全バイト数
+	vbView.StrideInBytes = sizeof(PMD_VERTEX);//1頂点あたりのバイト数
 
 	std::vector<unsigned short> indices(indicesNum);
 	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);//一気に読み込み
@@ -709,7 +729,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//トゥーンリソースの読み込み
 			string toonFilePath = "toon/";
 			char toonFileName[16];
-			sprintf(toonFileName, "toon%02d.bmp", pmdMaterials[i].toonIdx + 1);
+			sprintf_s(toonFileName, 16,"toon%02d.bmp", pmdMaterials[i].toonIdx + 1);
 			toonFilePath += toonFileName;
 			toonResources[i] = LoadTextureFromFile(toonFilePath);
 
@@ -779,10 +799,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12Resource* idxBuff = nullptr;
 	//設定は、バッファのサイズ以外頂点バッファの設定を使いまわして
 	//OKだと思います。
+	heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	resDesc = CD3DX12_RESOURCE_DESC::Buffer(indices.size() * sizeof(indices[0]));
 	result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indices.size()*sizeof(indices[0])),
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&idxBuff));
@@ -797,16 +819,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_INDEX_BUFFER_VIEW ibView = {};
 	ibView.BufferLocation = idxBuff->GetGPUVirtualAddress();
 	ibView.Format = DXGI_FORMAT_R16_UINT;
-	ibView.SizeInBytes = indices.size()*sizeof(indices[0]);
+	ibView.SizeInBytes = static_cast<UINT>(indices.size()*sizeof(indices[0]));
 
 	//マテリアルバッファを作成
 	auto materialBuffSize = sizeof(MaterialForHlsl);
 	materialBuffSize = (materialBuffSize + 0xff)&~0xff;
+	heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	resDesc = CD3DX12_RESOURCE_DESC::Buffer(materialBuffSize * materialNum);//勿体ないけど仕方ないですね
 	ID3D12Resource* materialBuff = nullptr;
 	result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(materialBuffSize*materialNum),//勿体ないけど仕方ないですね
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&materialBuff)
@@ -833,7 +857,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC matCBVDesc = {};
 	matCBVDesc.BufferLocation = materialBuff->GetGPUVirtualAddress();
-	matCBVDesc.SizeInBytes = materialBuffSize;
+	matCBVDesc.SizeInBytes = static_cast<UINT>(materialBuffSize);
 
 	////通常テクスチャビュー作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -843,7 +867,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	auto matDescHeapH = materialDescHeap->GetCPUDescriptorHandleForHeapStart();
 	auto incSize= _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	for (int i = 0; i < materialNum; ++i) {
+	for (size_t i = 0; i < materialNum; ++i) {
 		//マテリアル固定バッファビュー
 		_dev->CreateConstantBufferView(&matCBVDesc,matDescHeapH);
 		matDescHeapH.ptr += incSize;
@@ -1098,10 +1122,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		100.0f//遠い方
 	);
 	ID3D12Resource* constBuff = nullptr;
+	heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	resDesc = CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff);
 	result = _dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff)&~0xff),
+		&resDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&constBuff)
@@ -1127,7 +1153,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = constBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = constBuff->GetDesc().Width;
+	cbvDesc.SizeInBytes = static_cast<UINT>(constBuff->GetDesc().Width);
 	//定数バッファビューの作成
 	_dev->CreateConstantBufferView(&cbvDesc, basicHeapHandle);
 
@@ -1155,16 +1181,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//バックバッファのインデックスを取得
 		auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
-		_cmdList->ResourceBarrier(1,
-			&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx],
-				D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx],
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		_cmdList->ResourceBarrier(1, &barrier);
 
 		_cmdList->SetPipelineState(_pipelinestate);
 
 
 		//レンダーターゲットを指定
 		auto rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-		rtvH.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		rtvH.ptr += static_cast<ULONG_PTR>(bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 		
 		_cmdList->OMSetRenderTargets(1, &rtvH, false, &dsvH);
 		_cmdList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -1200,9 +1226,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			idxOffset += m.indicesNum;			
 		}
 
-		_cmdList->ResourceBarrier(1,
-			&CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx],
-				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(_backBuffers[bbIdx],
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		_cmdList->ResourceBarrier(1, &barrier);
 
 		//命令のクローズ
 		_cmdList->Close();
